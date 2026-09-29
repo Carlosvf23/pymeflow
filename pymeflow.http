@@ -1,0 +1,13 @@
+POST http://localhost:8080/api/empresas
+Content-Type: application/json
+
+{
+  "rut": "78.512.801-k",
+  "razonSocial": "Empresas Vásquez Ferreira SpA",
+  "nombreFantasia": "Hualma",
+  "email": "contacto@ejemplo.cl",
+  "telefono": "+56912345678",
+  "direccion": "Puente Alto",
+  "comuna": "Puente Alto",
+  "region": "Región Metropolitana"
+}
