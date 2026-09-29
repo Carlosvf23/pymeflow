@@ -2,12 +2,14 @@ package cl.pymeflow.shared.exception;
 
 import cl.pymeflow.empresa.exception.EmpresaNoEncontradaException;
 import cl.pymeflow.empresa.exception.RutEmpresaDuplicadoException;
+import cl.pymeflow.usuario.exception.EmailUsuarioDuplicadoException;
+import cl.pymeflow.usuario.exception.UsuarioNoEncontradoException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
+import cl.pymeflow.auth.exception.CredencialesInvalidasException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -32,6 +34,38 @@ public class GlobalExceptionHandler {
     ) {
         return construirRespuesta(
                 HttpStatus.CONFLICT,
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(UsuarioNoEncontradoException.class)
+    public ResponseEntity<ApiError> manejarUsuarioNoEncontrado(
+            UsuarioNoEncontradoException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(EmailUsuarioDuplicadoException.class)
+    public ResponseEntity<ApiError> manejarEmailUsuarioDuplicado(
+            EmailUsuarioDuplicadoException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.CONFLICT,
+                ex.getMessage(),
+                null
+        );
+    }
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<ApiError> manejarCredencialesInvalidas(
+            CredencialesInvalidasException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.UNAUTHORIZED,
                 ex.getMessage(),
                 null
         );
