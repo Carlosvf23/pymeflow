@@ -9,6 +9,7 @@ import cl.pymeflow.empresa.model.Empresa;
 import cl.pymeflow.empresa.repository.EmpresaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import cl.pymeflow.security.UsuarioAutenticadoService;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,9 +19,14 @@ import java.util.UUID;
 public class EmpresaService {
 
     private final EmpresaRepository empresaRepository;
+    private final UsuarioAutenticadoService usuarioAutenticadoService;
 
-    public EmpresaService(EmpresaRepository empresaRepository) {
+    public EmpresaService(
+            EmpresaRepository empresaRepository,
+            UsuarioAutenticadoService usuarioAutenticadoService
+    ) {
         this.empresaRepository = empresaRepository;
+        this.usuarioAutenticadoService = usuarioAutenticadoService;
     }
 
     @Transactional
@@ -47,10 +53,16 @@ public class EmpresaService {
     }
 
     public List<EmpresaResponse> listar() {
-        return empresaRepository.findAll()
-                .stream()
-                .map(this::convertirAResponse)
-                .toList();
+
+        UUID empresaId =
+                usuarioAutenticadoService.obtenerEmpresaId();
+
+        Empresa empresa = empresaRepository.findById(empresaId)
+                .orElseThrow(() ->
+                        new EmpresaNoEncontradaException(empresaId)
+                );
+
+        return List.of(convertirAResponse(empresa));
     }
 
     public EmpresaResponse buscarPorId(UUID id) {
@@ -96,8 +108,18 @@ public class EmpresaService {
     }
 
     private Empresa buscarEntidadPorId(UUID id) {
+
+        UUID empresaIdActual =
+                usuarioAutenticadoService.obtenerEmpresaId();
+
+        if (!empresaIdActual.equals(id)) {
+            throw new EmpresaNoEncontradaException(id);
+        }
+
         return empresaRepository.findById(id)
-                .orElseThrow(() -> new EmpresaNoEncontradaException(id));
+                .orElseThrow(() ->
+                        new EmpresaNoEncontradaException(id)
+                );
     }
 
     private EmpresaResponse convertirAResponse(Empresa empresa) {

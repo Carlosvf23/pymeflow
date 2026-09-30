@@ -13,6 +13,8 @@ import cl.pymeflow.usuario.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import cl.pymeflow.security.UsuarioAutenticadoService;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -21,17 +23,18 @@ import java.util.UUID;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
-    private final EmpresaRepository empresaRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UsuarioAutenticadoService usuarioAutenticadoService;
 
     public UsuarioService(
             UsuarioRepository usuarioRepository,
             EmpresaRepository empresaRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            UsuarioAutenticadoService usuarioAutenticadoService
     ) {
         this.usuarioRepository = usuarioRepository;
-        this.empresaRepository = empresaRepository;
         this.passwordEncoder = passwordEncoder;
+        this.usuarioAutenticadoService = usuarioAutenticadoService;
     }
 
     @Transactional
@@ -41,10 +44,9 @@ public class UsuarioService {
             throw new EmailUsuarioDuplicadoException(request.email());
         }
 
-        Empresa empresa = empresaRepository.findById(request.empresaId())
-                .orElseThrow(() ->
-                        new EmpresaNoEncontradaException(request.empresaId())
-                );
+        Empresa empresa =
+                usuarioAutenticadoService.obtenerUsuarioActual()
+                        .getEmpresa();
 
         Usuario usuario = new Usuario(
                 empresa,
@@ -61,7 +63,11 @@ public class UsuarioService {
     }
 
     public List<UsuarioResponse> listar() {
-        return usuarioRepository.findAll()
+
+        UUID empresaId =
+                usuarioAutenticadoService.obtenerEmpresaId();
+
+        return usuarioRepository.findAllByEmpresaId(empresaId)
                 .stream()
                 .map(this::convertirAResponse)
                 .toList();
@@ -118,8 +124,26 @@ public class UsuarioService {
     }
 
     private Usuario buscarEntidadPorId(UUID id) {
-        return usuarioRepository.findById(id)
-                .orElseThrow(() -> new UsuarioNoEncontradoException(id));
+
+        UUID empresaId =
+                usuarioAutenticadoService.obtenerEmpresaId();
+
+        return usuarioRepository
+                .findByIdAndEmpresaId(id, empresaId)
+                .orElseThrow(() ->
+                        new UsuarioNoEncontradoException(id)
+                );
+    }
+    private Usuario buscarUsuarioDeEmpresaActual(UUID usuarioId) {
+
+        UUID empresaId =
+                usuarioAutenticadoService.obtenerEmpresaId();
+
+        return usuarioRepository
+                .findByIdAndEmpresaId(usuarioId, empresaId)
+                .orElseThrow(() ->
+                        new UsuarioNoEncontradoException(usuarioId)
+                );
     }
 
     private UsuarioResponse convertirAResponse(Usuario usuario) {

@@ -6,12 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-import java.util.UUID;
-
 public record CrearUsuarioRequest(
-
-        @NotNull(message = "La empresa es obligatoria")
-        UUID empresaId,
 
         @NotBlank(message = "El nombre es obligatorio")
         @Size(max = 100)
