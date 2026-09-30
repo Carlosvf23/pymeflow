@@ -5,6 +5,7 @@ import cl.pymeflow.usuario.model.RolUsuario;
 import java.util.UUID;
 
 public record LoginResponse(
+        String token,
         UUID usuarioId,
         UUID empresaId,
         String nombre,

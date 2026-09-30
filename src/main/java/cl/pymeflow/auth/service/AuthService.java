@@ -8,19 +8,22 @@ import cl.pymeflow.usuario.model.Usuario;
 import cl.pymeflow.usuario.repository.UsuarioRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import cl.pymeflow.security.JwtService;
 @Service
 public class AuthService {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public AuthService(
             UsuarioRepository usuarioRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService
     ) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -39,7 +42,10 @@ public class AuthService {
             throw new CredencialesInvalidasException();
         }
 
+        String token = jwtService.generarToken(usuario);
+
         return new LoginResponse(
+                token,
                 usuario.getId(),
                 usuario.getEmpresa().getId(),
                 usuario.getNombre(),
