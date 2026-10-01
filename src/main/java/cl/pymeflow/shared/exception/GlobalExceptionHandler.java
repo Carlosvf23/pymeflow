@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import cl.pymeflow.auth.exception.CredencialesInvalidasException;
 import cl.pymeflow.cliente.exception.ClienteNoEncontradoException;
 import cl.pymeflow.cliente.exception.RutClienteDuplicadoException;
+import cl.pymeflow.proveedor.exception.ProveedorNoEncontradoException;
+import cl.pymeflow.proveedor.exception.RutProveedorDuplicadoException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -117,6 +119,27 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 "Los datos enviados no son válidos",
                 errores
+        );
+    }
+    @ExceptionHandler(ProveedorNoEncontradoException.class)
+    public ResponseEntity<ApiError> manejarProveedorNoEncontrado(
+            ProveedorNoEncontradoException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(RutProveedorDuplicadoException.class)
+    public ResponseEntity<ApiError> manejarRutProveedorDuplicado(
+            RutProveedorDuplicadoException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.CONFLICT,
+                ex.getMessage(),
+                null
         );
     }
 
