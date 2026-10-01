@@ -14,7 +14,9 @@ public interface ClienteRepository extends JpaRepository<Cliente, UUID> {
     Optional<Cliente> findByIdAndEmpresaId(
             UUID id,
             UUID empresaId
+
     );
+    long countByEmpresaId(UUID empresaId);
 
     boolean existsByEmpresaIdAndRut(
             UUID empresaId,

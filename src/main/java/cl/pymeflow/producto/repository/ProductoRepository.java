@@ -16,6 +16,7 @@ public interface ProductoRepository
             UUID id,
             UUID empresaId
     );
+    long countByEmpresaId(UUID empresaId);
 
     boolean existsByEmpresaIdAndSku(
             UUID empresaId,

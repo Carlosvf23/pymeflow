@@ -16,6 +16,7 @@ public interface ProveedorRepository
             UUID id,
             UUID empresaId
     );
+    long countByEmpresaId(UUID empresaId);
 
     boolean existsByEmpresaIdAndRut(
             UUID empresaId,
