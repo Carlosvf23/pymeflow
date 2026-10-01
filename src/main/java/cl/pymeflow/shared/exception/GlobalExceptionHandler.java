@@ -10,6 +10,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import cl.pymeflow.auth.exception.CredencialesInvalidasException;
+import cl.pymeflow.cliente.exception.ClienteNoEncontradoException;
+import cl.pymeflow.cliente.exception.RutClienteDuplicadoException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -69,7 +71,32 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 null
         );
+
     }
+    @ExceptionHandler(ClienteNoEncontradoException.class)
+    public ResponseEntity<ApiError> manejarClienteNoEncontrado(
+            ClienteNoEncontradoException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(RutClienteDuplicadoException.class)
+    public ResponseEntity<ApiError> manejarRutClienteDuplicado(
+            RutClienteDuplicadoException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.CONFLICT,
+                ex.getMessage(),
+                null
+        );
+    }
+
+
+
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> manejarValidaciones(
@@ -92,6 +119,8 @@ public class GlobalExceptionHandler {
                 errores
         );
     }
+
+
 
     private ResponseEntity<ApiError> construirRespuesta(
             HttpStatus status,
