@@ -18,6 +18,7 @@ import cl.pymeflow.categoria.exception.CategoriaNoEncontradaException;
 import cl.pymeflow.categoria.exception.NombreCategoriaDuplicadoException;
 import cl.pymeflow.producto.exception.ProductoNoEncontradoException;
 import cl.pymeflow.producto.exception.SkuProductoDuplicadoException;
+import cl.pymeflow.inventario.exception.StockInsuficienteException;
 
 
 import java.time.Instant;
@@ -183,6 +184,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SkuProductoDuplicadoException.class)
     public ResponseEntity<ApiError> manejarSkuProductoDuplicado(
             SkuProductoDuplicadoException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.CONFLICT,
+                ex.getMessage(),
+                null
+        );
+    }
+    @ExceptionHandler(StockInsuficienteException.class)
+    public ResponseEntity<ApiError> manejarStockInsuficiente(
+            StockInsuficienteException ex
     ) {
         return construirRespuesta(
                 HttpStatus.CONFLICT,
