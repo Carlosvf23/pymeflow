@@ -14,6 +14,12 @@ import cl.pymeflow.cliente.exception.ClienteNoEncontradoException;
 import cl.pymeflow.cliente.exception.RutClienteDuplicadoException;
 import cl.pymeflow.proveedor.exception.ProveedorNoEncontradoException;
 import cl.pymeflow.proveedor.exception.RutProveedorDuplicadoException;
+import cl.pymeflow.categoria.exception.CategoriaNoEncontradaException;
+import cl.pymeflow.categoria.exception.NombreCategoriaDuplicadoException;
+import cl.pymeflow.producto.exception.ProductoNoEncontradoException;
+import cl.pymeflow.producto.exception.SkuProductoDuplicadoException;
+
+
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -135,6 +141,48 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RutProveedorDuplicadoException.class)
     public ResponseEntity<ApiError> manejarRutProveedorDuplicado(
             RutProveedorDuplicadoException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.CONFLICT,
+                ex.getMessage(),
+                null
+        );
+    }
+    @ExceptionHandler(CategoriaNoEncontradaException.class)
+    public ResponseEntity<ApiError> manejarCategoriaNoEncontrada(
+            CategoriaNoEncontradaException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(NombreCategoriaDuplicadoException.class)
+    public ResponseEntity<ApiError> manejarNombreCategoriaDuplicado(
+            NombreCategoriaDuplicadoException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.CONFLICT,
+                ex.getMessage(),
+                null
+        );
+    }
+    @ExceptionHandler(ProductoNoEncontradoException.class)
+    public ResponseEntity<ApiError> manejarProductoNoEncontrado(
+            ProductoNoEncontradoException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(SkuProductoDuplicadoException.class)
+    public ResponseEntity<ApiError> manejarSkuProductoDuplicado(
+            SkuProductoDuplicadoException ex
     ) {
         return construirRespuesta(
                 HttpStatus.CONFLICT,
