@@ -19,7 +19,8 @@ import cl.pymeflow.categoria.exception.NombreCategoriaDuplicadoException;
 import cl.pymeflow.producto.exception.ProductoNoEncontradoException;
 import cl.pymeflow.producto.exception.SkuProductoDuplicadoException;
 import cl.pymeflow.inventario.exception.StockInsuficienteException;
-
+import cl.pymeflow.compra.exception.CompraNoEncontradaException;
+import cl.pymeflow.compra.exception.CompraEstadoInvalidoException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -194,6 +195,26 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(StockInsuficienteException.class)
     public ResponseEntity<ApiError> manejarStockInsuficiente(
             StockInsuficienteException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.CONFLICT,
+                ex.getMessage(),
+                null
+        );
+    }
+    @ExceptionHandler(CompraNoEncontradaException.class)
+    public ResponseEntity<ApiError> manejarCompraNoEncontrada(
+            CompraNoEncontradaException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                null
+        );
+    }
+    @ExceptionHandler(CompraEstadoInvalidoException.class)
+    public ResponseEntity<ApiError> manejarCompraEstadoInvalido(
+            CompraEstadoInvalidoException ex
     ) {
         return construirRespuesta(
                 HttpStatus.CONFLICT,
