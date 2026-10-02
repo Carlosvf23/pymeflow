@@ -5,8 +5,21 @@ export interface LoginRequest {
     password: string
 }
 
-export async function login(datos: LoginRequest) {
-    const respuesta = await api.post('/auth/login', datos)
+export interface LoginResponse {
+    token: string
+    usuarioId: string
+    empresaId: string
+    nombre: string
+    email: string
+    rol: string
+}
+
+export async function login(
+    datos: LoginRequest
+): Promise<LoginResponse> {
+
+    const respuesta =
+        await api.post<LoginResponse>('/auth/login', datos)
 
     return respuesta.data
 }

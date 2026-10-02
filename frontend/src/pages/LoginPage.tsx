@@ -1,54 +1,108 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { login } from '../services/authService'
-import { obtenerDashboard } from '../services/dashboardService'
-interface LoginPageProps {
-    onLoginExitoso: () => void
-}
-function LoginPage({ onLoginExitoso }: LoginPageProps) {
+
+function LoginPage() {
+    const navigate = useNavigate()
 
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    async function handleLogin() {
+    const [error, setError] = useState('')
+    const [cargando, setCargando] = useState(false)
+
+    async function handleLogin(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault()
+
         try {
+            setError('')
+            setCargando(true)
+
             const respuesta = await login({
-                email: email,
-                password: password
+                email,
+                password
             })
 
             localStorage.setItem('token', respuesta.token)
-            const dashboard = await obtenerDashboard()
+            localStorage.setItem('nombre', respuesta.nombre)
+            localStorage.setItem('rol', respuesta.rol)
 
-            console.log('Dashboard:', dashboard)
-            onLoginExitoso()
-            console.log(respuesta)
-        } catch (error) {
-            console.error('Error al iniciar sesión', error)
+            navigate('/dashboard')
+
+        } catch {
+            setError('Correo o contraseña incorrectos.')
+        } finally {
+            setCargando(false)
         }
     }
 
     return (
-        <div>
-            <h1>PymeFlow Chile</h1>
-            <h2>Iniciar sesión</h2>
+        <main className="login-page">
 
-            <input
-                type="email"
-                placeholder="Correo electrónico"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-            />
+            <div className="login-card">
 
-            <input
-                type="password"
-                placeholder="Contraseña"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-            />
+                <div className="login-brand">
+                    <div className="login-logo">P</div>
 
-            <button onClick={handleLogin}>
-                Ingresar
-            </button>
-        </div>
+                    <h1>PymeFlow</h1>
+
+                    <p>
+                        Gestión empresarial simple y centralizada
+                    </p>
+                </div>
+
+                <form
+                    className="login-form"
+                    onSubmit={handleLogin}
+                >
+
+                    <label>
+                        Correo electrónico
+
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) =>
+                                setEmail(e.target.value)
+                            }
+                            placeholder="correo@empresa.cl"
+                            required
+                        />
+                    </label>
+
+                    <label>
+                        Contraseña
+
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) =>
+                                setPassword(e.target.value)
+                            }
+                            placeholder="••••••••"
+                            required
+                        />
+                    </label>
+
+                    {error && (
+                        <p className="login-error">
+                            {error}
+                        </p>
+                    )}
+
+                    <button
+                        type="submit"
+                        disabled={cargando}
+                    >
+                        {cargando
+                            ? 'Ingresando...'
+                            : 'Iniciar sesión'}
+                    </button>
+
+                </form>
+
+            </div>
+
+        </main>
     )
 }
 

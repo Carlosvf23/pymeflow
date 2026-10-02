@@ -1,21 +1,109 @@
-import { useState } from 'react'
+import {
+    Navigate,
+    Route,
+    Routes
+} from 'react-router-dom'
+
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
+import ModuloPage from './pages/ModuloPage'
+import AppLayout from './components/AppLayout'
+import ClientesPage from './pages/ClientesPage'
 
-function App() {
+function RutaProtegida() {
+    const token = localStorage.getItem('token')
 
-    const [autenticado, setAutenticado] = useState(
-        localStorage.getItem('token') !== null
-    )
-
-    if (autenticado) {
-        return <DashboardPage />
+    if (!token) {
+        return <Navigate to="/login" replace />
     }
 
+    return <AppLayout />
+}
+
+function App() {
     return (
-        <LoginPage
-            onLoginExitoso={() => setAutenticado(true)}
-        />
+        <Routes>
+
+            <Route
+                path="/login"
+                element={<LoginPage />}
+            />
+
+            <Route element={<RutaProtegida />}>
+
+                <Route
+                    path="/dashboard"
+                    element={<DashboardPage />}
+                />
+
+                <Route
+                    path="/clientes"
+                    element={<ClientesPage />}
+                />
+
+                <Route
+                    path="/proveedores"
+                    element={
+                        <ModuloPage
+                            titulo="Proveedores"
+                            descripcion="Administra tus proveedores"
+                        />
+                    }
+                />
+
+                <Route
+                    path="/productos"
+                    element={
+                        <ModuloPage
+                            titulo="Productos"
+                            descripcion="Gestiona tu catálogo de productos"
+                        />
+                    }
+                />
+
+                <Route
+                    path="/inventario"
+                    element={
+                        <ModuloPage
+                            titulo="Inventario"
+                            descripcion="Consulta y controla el stock"
+                        />
+                    }
+                />
+
+                <Route
+                    path="/compras"
+                    element={
+                        <ModuloPage
+                            titulo="Compras"
+                            descripcion="Gestiona las compras de tu empresa"
+                        />
+                    }
+                />
+
+                <Route
+                    path="/ventas"
+                    element={
+                        <ModuloPage
+                            titulo="Ventas"
+                            descripcion="Gestiona las ventas de tu empresa"
+                        />
+                    }
+                />
+
+            </Route>
+
+            <Route
+                path="/"
+                element={<Navigate to="/dashboard" replace />}
+            />
+
+            <Route
+                path="*"
+                element={<Navigate to="/dashboard" replace />}
+            />
+
+        </Routes>
     )
 }
 
