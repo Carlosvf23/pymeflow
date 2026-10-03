@@ -9,6 +9,9 @@ import DashboardPage from './pages/DashboardPage'
 import ModuloPage from './pages/ModuloPage'
 import AppLayout from './components/AppLayout'
 import ClientesPage from './pages/ClientesPage'
+import ProveedoresPage from './pages/ProveedoresPage'
+import CategoriasPage from './pages/CategoriasPage'
+import ProductosPage from './pages/ProductosPage'
 
 function RutaProtegida() {
     const token = localStorage.getItem('token')
@@ -23,11 +26,7 @@ function RutaProtegida() {
 function App() {
     return (
         <Routes>
-
-            <Route
-                path="/login"
-                element={<LoginPage />}
-            />
+            <Route path="/login" element={<LoginPage />} />
 
             <Route element={<RutaProtegida />}>
 
@@ -43,22 +42,18 @@ function App() {
 
                 <Route
                     path="/proveedores"
-                    element={
-                        <ModuloPage
-                            titulo="Proveedores"
-                            descripcion="Administra tus proveedores"
-                        />
-                    }
+                    element={<ProveedoresPage />}
                 />
 
                 <Route
                     path="/productos"
-                    element={
-                        <ModuloPage
-                            titulo="Productos"
-                            descripcion="Gestiona tu catálogo de productos"
-                        />
-                    }
+                    element={<ProductosPage />}
+                />
+
+                {/* AQUÍ */}
+                <Route
+                    path="/categorias"
+                    element={<CategoriasPage />}
                 />
 
                 <Route
@@ -66,43 +61,14 @@ function App() {
                     element={
                         <ModuloPage
                             titulo="Inventario"
-                            descripcion="Consulta y controla el stock"
+                            descripcion="Control de stock y movimientos"
                         />
                     }
                 />
 
-                <Route
-                    path="/compras"
-                    element={
-                        <ModuloPage
-                            titulo="Compras"
-                            descripcion="Gestiona las compras de tu empresa"
-                        />
-                    }
-                />
-
-                <Route
-                    path="/ventas"
-                    element={
-                        <ModuloPage
-                            titulo="Ventas"
-                            descripcion="Gestiona las ventas de tu empresa"
-                        />
-                    }
-                />
+                {/* después siguen Compras, Ventas, etc. */}
 
             </Route>
-
-            <Route
-                path="/"
-                element={<Navigate to="/dashboard" replace />}
-            />
-
-            <Route
-                path="*"
-                element={<Navigate to="/dashboard" replace />}
-            />
-
         </Routes>
     )
 }

@@ -1,0 +1,231 @@
+.categorias-page {
+    padding: 32px;
+}
+
+.categorias-header,
+.categorias-toolbar,
+.categoria-acciones,
+.categoria-modal-header,
+.categoria-modal-acciones {
+    display: flex;
+    align-items: center;
+}
+
+.categorias-header,
+.categorias-toolbar,
+.categoria-modal-header {
+    justify-content: space-between;
+}
+
+.categorias-header {
+    margin-bottom: 24px;
+}
+
+.categorias-header h1 {
+    margin: 0;
+}
+
+.categorias-header p {
+    margin: 6px 0 0;
+    color: #6b7280;
+}
+
+.categorias-panel {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.categorias-toolbar {
+    padding: 18px;
+    gap: 16px;
+    border-bottom: 1px solid #e5e7eb;
+    color: #6b7280;
+}
+
+.categorias-buscador {
+    width: 100%;
+    max-width: 420px;
+}
+
+.categorias-buscador,
+.categoria-modal input,
+.categoria-modal textarea {
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    outline: none;
+}
+
+.categorias-tabla-contenedor {
+    overflow-x: auto;
+}
+
+.categorias-tabla {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.categorias-tabla th,
+.categorias-tabla td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.categorias-tabla th {
+    background: #f9fafb;
+    color: #6b7280;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.categoria-estado {
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.categoria-activa {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.categoria-inactiva {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.categoria-acciones {
+    gap: 8px;
+}
+
+.categoria-editar,
+.categoria-estado-boton {
+    padding: 7px 10px;
+    border-radius: 7px;
+    background: white;
+    cursor: pointer;
+}
+
+.categoria-editar {
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+}
+
+.categoria-desactivar {
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+}
+
+.categoria-activar {
+    border: 1px solid #bbf7d0;
+    color: #15803d;
+}
+
+.categoria-boton-principal {
+    padding: 11px 16px;
+    border: 0;
+    border-radius: 8px;
+    background: #2563eb;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.categorias-error {
+    margin: 16px;
+    padding: 11px;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.categorias-mensaje {
+    padding: 40px;
+    text-align: center;
+}
+
+.categoria-modal-fondo {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(17, 24, 39, .55);
+}
+
+.categoria-modal {
+    width: 100%;
+    max-width: 550px;
+    padding: 24px;
+    border-radius: 14px;
+    background: white;
+}
+
+.categoria-modal-header {
+    margin-bottom: 22px;
+}
+
+.categoria-modal-header h2 {
+    margin: 0;
+}
+
+.categoria-modal-header button {
+    border: 0;
+    background: transparent;
+    font-size: 26px;
+    cursor: pointer;
+}
+
+.categoria-modal form,
+.categoria-modal label {
+    display: flex;
+    flex-direction: column;
+}
+
+.categoria-modal form {
+    gap: 18px;
+}
+
+.categoria-modal label {
+    gap: 7px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.categoria-modal textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.categoria-modal-acciones {
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.categoria-cancelar {
+    padding: 11px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+}
+.categoria-volver {
+    margin-bottom: 12px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #2563eb;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.categoria-volver:hover {
+    text-decoration: underline;
+}
