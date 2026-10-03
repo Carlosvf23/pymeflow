@@ -2,6 +2,7 @@ package cl.pymeflow.venta.model;
 
 import cl.pymeflow.cliente.model.Cliente;
 import cl.pymeflow.empresa.model.Empresa;
+import cl.pymeflow.venta.exception.VentaEstadoInvalidoException;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -9,7 +10,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import cl.pymeflow.venta.exception.VentaEstadoInvalidoException;
 
 @Entity
 @Table(name = "ventas")
@@ -76,9 +76,38 @@ public class Venta {
     }
 
     public void agregarDetalle(DetalleVenta detalle) {
-
         detalle.asignarVenta(this);
         detalles.add(detalle);
+        recalcularTotal();
+    }
+
+    public void actualizar(
+            Cliente cliente,
+            String numeroDocumento,
+            Instant fechaVenta,
+            String observacion
+    ) {
+        validarBorrador(
+                "Solo se puede editar una venta en estado BORRADOR"
+        );
+
+        this.cliente = cliente;
+        this.numeroDocumento = numeroDocumento;
+        this.fechaVenta = fechaVenta;
+        this.observacion = observacion;
+    }
+
+    public void reemplazarDetalles(List<DetalleVenta> nuevosDetalles) {
+        validarBorrador(
+                "Solo se pueden modificar los productos de una venta en estado BORRADOR"
+        );
+
+        this.detalles.clear();
+
+        for (DetalleVenta detalle : nuevosDetalles) {
+            detalle.asignarVenta(this);
+            this.detalles.add(detalle);
+        }
 
         recalcularTotal();
     }
@@ -90,14 +119,23 @@ public class Venta {
     }
 
     public void confirmar() {
-
-        if (this.estado != EstadoVenta.BORRADOR) {
-            throw new VentaEstadoInvalidoException(
-                    "Solo se puede confirmar una venta en estado BORRADOR"
-            );
-        }
+        validarBorrador(
+                "Solo se puede confirmar una venta en estado BORRADOR"
+        );
 
         this.estado = EstadoVenta.CONFIRMADA;
+    }
+
+    public void validarEliminacion() {
+        validarBorrador(
+                "Solo se puede eliminar una venta en estado BORRADOR"
+        );
+    }
+
+    private void validarBorrador(String mensaje) {
+        if (this.estado != EstadoVenta.BORRADOR) {
+            throw new VentaEstadoInvalidoException(mensaje);
+        }
     }
 
     public void anular() {

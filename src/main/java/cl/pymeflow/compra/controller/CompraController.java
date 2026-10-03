@@ -17,7 +17,9 @@ public class CompraController {
 
     private final CompraService compraService;
 
-    public CompraController(CompraService compraService) {
+    public CompraController(
+            CompraService compraService
+    ) {
         this.compraService = compraService;
     }
 
@@ -25,7 +27,9 @@ public class CompraController {
     public ResponseEntity<CompraResponse> crear(
             @Valid @RequestBody CrearCompraRequest request
     ) {
-        CompraResponse response = compraService.crear(request);
+
+        CompraResponse response =
+                compraService.crear(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -47,6 +51,30 @@ public class CompraController {
                 compraService.buscarPorId(id)
         );
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CompraResponse> actualizar(
+            @PathVariable UUID id,
+            @Valid @RequestBody CrearCompraRequest request
+    ) {
+        return ResponseEntity.ok(
+                compraService.actualizar(
+                        id,
+                        request
+                )
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(
+            @PathVariable UUID id
+    ) {
+
+        compraService.eliminar(id);
+
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/{id}/confirmar")
     public ResponseEntity<CompraResponse> confirmar(
             @PathVariable UUID id

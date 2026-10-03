@@ -1,9 +1,9 @@
 package cl.pymeflow.compra.model;
 
+import cl.pymeflow.compra.exception.CompraEstadoInvalidoException;
 import cl.pymeflow.empresa.model.Empresa;
 import cl.pymeflow.proveedor.model.Proveedor;
 import jakarta.persistence.*;
-import cl.pymeflow.compra.exception.CompraEstadoInvalidoException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -76,9 +76,40 @@ public class Compra {
     }
 
     public void agregarDetalle(DetalleCompra detalle) {
-
         detalle.asignarCompra(this);
         detalles.add(detalle);
+        recalcularTotal();
+    }
+
+    public void actualizar(
+            Proveedor proveedor,
+            String numeroDocumento,
+            Instant fechaCompra,
+            String observacion
+    ) {
+        validarBorrador(
+                "Solo se puede editar una compra en estado BORRADOR"
+        );
+
+        this.proveedor = proveedor;
+        this.numeroDocumento = numeroDocumento;
+        this.fechaCompra = fechaCompra;
+        this.observacion = observacion;
+    }
+
+    public void reemplazarDetalles(
+            List<DetalleCompra> nuevosDetalles
+    ) {
+        validarBorrador(
+                "Solo se pueden modificar los productos de una compra en estado BORRADOR"
+        );
+
+        detalles.clear();
+
+        for (DetalleCompra detalle : nuevosDetalles) {
+            detalle.asignarCompra(this);
+            detalles.add(detalle);
+        }
 
         recalcularTotal();
     }
@@ -90,14 +121,23 @@ public class Compra {
     }
 
     public void confirmar() {
-
-        if (this.estado != EstadoCompra.BORRADOR) {
-            throw new CompraEstadoInvalidoException(
-                    "Solo se puede confirmar una compra en estado BORRADOR"
-            );
-        }
+        validarBorrador(
+                "Solo se puede confirmar una compra en estado BORRADOR"
+        );
 
         this.estado = EstadoCompra.CONFIRMADA;
+    }
+
+    public void validarEliminacion() {
+        validarBorrador(
+                "Solo se puede eliminar una compra en estado BORRADOR"
+        );
+    }
+
+    private void validarBorrador(String mensaje) {
+        if (this.estado != EstadoCompra.BORRADOR) {
+            throw new CompraEstadoInvalidoException(mensaje);
+        }
     }
 
     public void anular() {

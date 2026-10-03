@@ -10,7 +10,6 @@ import cl.pymeflow.inventario.service.InventarioService;
 import cl.pymeflow.producto.exception.ProductoNoEncontradoException;
 import cl.pymeflow.producto.model.Producto;
 import cl.pymeflow.producto.repository.ProductoRepository;
-
 import cl.pymeflow.security.UsuarioAutenticadoService;
 import cl.pymeflow.venta.dto.CrearDetalleVentaRequest;
 import cl.pymeflow.venta.dto.CrearVentaRequest;
@@ -22,6 +21,8 @@ import cl.pymeflow.venta.repository.VentaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -51,19 +52,15 @@ public class VentaService {
     @Transactional
     public VentaResponse crear(CrearVentaRequest request) {
 
+        validarFechaVenta(request.fechaVenta());
+
         UUID empresaId =
                 usuarioAutenticadoService.obtenerEmpresaId();
 
-        Cliente cliente = clienteRepository
-                .findByIdAndEmpresaId(
-                        request.clienteId(),
-                        empresaId
-                )
-                .orElseThrow(() ->
-                        new ClienteNoEncontradoException(
-                                request.clienteId()
-                        )
-                );
+        Cliente cliente = buscarCliente(
+                request.clienteId(),
+                empresaId
+        );
 
         Empresa empresa = cliente.getEmpresa();
 
@@ -75,30 +72,18 @@ public class VentaService {
                 request.observacion()
         );
 
-        for (CrearDetalleVentaRequest detalleRequest
-                : request.detalles()) {
+        List<DetalleVenta> detalles =
+                crearDetalles(
+                        request.detalles(),
+                        empresaId
+                );
 
-            Producto producto = productoRepository
-                    .findByIdAndEmpresaId(
-                            detalleRequest.productoId(),
-                            empresaId
-                    )
-                    .orElseThrow(() ->
-                            new ProductoNoEncontradoException(
-                                    detalleRequest.productoId()
-                            )
-                    );
-
-            DetalleVenta detalle = new DetalleVenta(
-                    producto,
-                    detalleRequest.cantidad(),
-                    detalleRequest.precioUnitario()
-            );
-
+        for (DetalleVenta detalle : detalles) {
             venta.agregarDetalle(detalle);
         }
 
-        Venta guardada = ventaRepository.save(venta);
+        Venta guardada =
+                ventaRepository.save(venta);
 
         return convertirAResponse(guardada);
     }
@@ -133,6 +118,71 @@ public class VentaService {
     }
 
     @Transactional
+    public VentaResponse actualizar(
+            UUID id,
+            CrearVentaRequest request
+    ) {
+
+        validarFechaVenta(request.fechaVenta());
+
+        UUID empresaId =
+                usuarioAutenticadoService.obtenerEmpresaId();
+
+        Venta venta = buscarEntidadPorId(
+                id,
+                empresaId
+        );
+
+        Cliente cliente = buscarCliente(
+                request.clienteId(),
+                empresaId
+        );
+
+        /*
+         * actualizar() valida internamente que la venta
+         * siga en estado BORRADOR.
+         */
+        venta.actualizar(
+                cliente,
+                request.numeroDocumento(),
+                request.fechaVenta(),
+                request.observacion()
+        );
+
+        List<DetalleVenta> nuevosDetalles =
+                crearDetalles(
+                        request.detalles(),
+                        empresaId
+                );
+
+        venta.reemplazarDetalles(
+                nuevosDetalles
+        );
+
+        return convertirAResponse(venta);
+    }
+
+    @Transactional
+    public void eliminar(UUID id) {
+
+        UUID empresaId =
+                usuarioAutenticadoService.obtenerEmpresaId();
+
+        Venta venta = buscarEntidadPorId(
+                id,
+                empresaId
+        );
+
+        /*
+         * Una venta CONFIRMADA o ANULADA
+         * no puede eliminarse.
+         */
+        venta.validarEliminacion();
+
+        ventaRepository.delete(venta);
+    }
+
+    @Transactional
     public VentaResponse confirmar(UUID id) {
 
         UUID empresaId =
@@ -163,12 +213,82 @@ public class VentaService {
         return convertirAResponse(venta);
     }
 
+    private Cliente buscarCliente(
+            UUID clienteId,
+            UUID empresaId
+    ) {
+
+        return clienteRepository
+                .findByIdAndEmpresaId(
+                        clienteId,
+                        empresaId
+                )
+                .orElseThrow(() ->
+                        new ClienteNoEncontradoException(
+                                clienteId
+                        )
+                );
+    }
+
+    private List<DetalleVenta> crearDetalles(
+            List<CrearDetalleVentaRequest> detallesRequest,
+            UUID empresaId
+    ) {
+
+        List<DetalleVenta> detalles =
+                new ArrayList<>();
+
+        for (
+                CrearDetalleVentaRequest detalleRequest
+                : detallesRequest
+        ) {
+
+            Producto producto =
+                    productoRepository
+                            .findByIdAndEmpresaId(
+                                    detalleRequest.productoId(),
+                                    empresaId
+                            )
+                            .orElseThrow(() ->
+                                    new ProductoNoEncontradoException(
+                                            detalleRequest.productoId()
+                                    )
+                            );
+
+            DetalleVenta detalle =
+                    new DetalleVenta(
+                            producto,
+                            detalleRequest.cantidad(),
+                            detalleRequest.precioUnitario()
+                    );
+
+            detalles.add(detalle);
+        }
+
+        return detalles;
+    }
+
+    private void validarFechaVenta(
+            Instant fechaVenta
+    ) {
+
+        if (fechaVenta.isAfter(Instant.now())) {
+            throw new IllegalArgumentException(
+                    "La fecha de venta no puede ser futura"
+            );
+        }
+    }
+
     private Venta buscarEntidadPorId(
             UUID id,
             UUID empresaId
     ) {
+
         return ventaRepository
-                .findByIdAndEmpresaId(id, empresaId)
+                .findByIdAndEmpresaId(
+                        id,
+                        empresaId
+                )
                 .orElseThrow(() ->
                         new VentaNoEncontradaException(id)
                 );

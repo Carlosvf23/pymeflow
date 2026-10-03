@@ -3,25 +3,27 @@ package cl.pymeflow.compra.service;
 import cl.pymeflow.compra.dto.CompraResponse;
 import cl.pymeflow.compra.dto.CrearCompraRequest;
 import cl.pymeflow.compra.dto.CrearDetalleCompraRequest;
+import cl.pymeflow.compra.exception.CompraEstadoInvalidoException;
 import cl.pymeflow.compra.exception.CompraNoEncontradaException;
 import cl.pymeflow.compra.model.Compra;
 import cl.pymeflow.compra.model.DetalleCompra;
 import cl.pymeflow.compra.repository.CompraRepository;
 import cl.pymeflow.empresa.model.Empresa;
+import cl.pymeflow.inventario.dto.RegistrarMovimientoRequest;
+import cl.pymeflow.inventario.model.TipoMovimientoInventario;
+import cl.pymeflow.inventario.service.InventarioService;
 import cl.pymeflow.producto.exception.ProductoNoEncontradoException;
 import cl.pymeflow.producto.model.Producto;
 import cl.pymeflow.producto.repository.ProductoRepository;
 import cl.pymeflow.proveedor.exception.ProveedorNoEncontradoException;
 import cl.pymeflow.proveedor.model.Proveedor;
 import cl.pymeflow.proveedor.repository.ProveedorRepository;
-import cl.pymeflow.inventario.dto.RegistrarMovimientoRequest;
-import cl.pymeflow.inventario.model.TipoMovimientoInventario;
-import cl.pymeflow.inventario.service.InventarioService;
-
 import cl.pymeflow.security.UsuarioAutenticadoService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -51,18 +53,15 @@ public class CompraService {
     @Transactional
     public CompraResponse crear(CrearCompraRequest request) {
 
+        validarFechaCompra(request.fechaCompra());
+
         UUID empresaId =
                 usuarioAutenticadoService.obtenerEmpresaId();
 
-        Proveedor proveedor = proveedorRepository
-                .findByIdAndEmpresaId(
+        Proveedor proveedor =
+                buscarProveedor(
                         request.proveedorId(),
                         empresaId
-                )
-                .orElseThrow(() ->
-                        new ProveedorNoEncontradoException(
-                                request.proveedorId()
-                        )
                 );
 
         Empresa empresa = proveedor.getEmpresa();
@@ -75,32 +74,80 @@ public class CompraService {
                 request.observacion()
         );
 
-        for (CrearDetalleCompraRequest detalleRequest
-                : request.detalles()) {
+        List<DetalleCompra> detalles =
+                crearDetalles(
+                        request.detalles(),
+                        empresaId
+                );
 
-            Producto producto = productoRepository
-                    .findByIdAndEmpresaId(
-                            detalleRequest.productoId(),
-                            empresaId
-                    )
-                    .orElseThrow(() ->
-                            new ProductoNoEncontradoException(
-                                    detalleRequest.productoId()
-                            )
-                    );
-
-            DetalleCompra detalle = new DetalleCompra(
-                    producto,
-                    detalleRequest.cantidad(),
-                    detalleRequest.precioUnitario()
-            );
-
+        for (DetalleCompra detalle : detalles) {
             compra.agregarDetalle(detalle);
         }
 
-        Compra guardada = compraRepository.save(compra);
+        Compra guardada =
+                compraRepository.save(compra);
 
         return convertirAResponse(guardada);
+    }
+
+    @Transactional
+    public CompraResponse actualizar(
+            UUID id,
+            CrearCompraRequest request
+    ) {
+
+        validarFechaCompra(request.fechaCompra());
+
+        UUID empresaId =
+                usuarioAutenticadoService.obtenerEmpresaId();
+
+        Compra compra =
+                buscarEntidadPorId(
+                        id,
+                        empresaId
+                );
+
+        Proveedor proveedor =
+                buscarProveedor(
+                        request.proveedorId(),
+                        empresaId
+                );
+
+        compra.actualizar(
+                proveedor,
+                request.numeroDocumento(),
+                request.fechaCompra(),
+                request.observacion()
+        );
+
+        List<DetalleCompra> nuevosDetalles =
+                crearDetalles(
+                        request.detalles(),
+                        empresaId
+                );
+
+        compra.reemplazarDetalles(
+                nuevosDetalles
+        );
+
+        return convertirAResponse(compra);
+    }
+
+    @Transactional
+    public void eliminar(UUID id) {
+
+        UUID empresaId =
+                usuarioAutenticadoService.obtenerEmpresaId();
+
+        Compra compra =
+                buscarEntidadPorId(
+                        id,
+                        empresaId
+                );
+
+        compra.validarEliminacion();
+
+        compraRepository.delete(compra);
     }
 
     @Transactional(readOnly = true)
@@ -124,23 +171,26 @@ public class CompraService {
         UUID empresaId =
                 usuarioAutenticadoService.obtenerEmpresaId();
 
-        Compra compra = buscarEntidadPorId(
-                id,
-                empresaId
-        );
+        Compra compra =
+                buscarEntidadPorId(
+                        id,
+                        empresaId
+                );
 
         return convertirAResponse(compra);
     }
+
     @Transactional
     public CompraResponse confirmar(UUID id) {
 
         UUID empresaId =
                 usuarioAutenticadoService.obtenerEmpresaId();
 
-        Compra compra = buscarEntidadPorId(
-                id,
-                empresaId
-        );
+        Compra compra =
+                buscarEntidadPorId(
+                        id,
+                        empresaId
+                );
 
         compra.confirmar();
 
@@ -162,12 +212,79 @@ public class CompraService {
         return convertirAResponse(compra);
     }
 
+    private Proveedor buscarProveedor(
+            UUID proveedorId,
+            UUID empresaId
+    ) {
+        return proveedorRepository
+                .findByIdAndEmpresaId(
+                        proveedorId,
+                        empresaId
+                )
+                .orElseThrow(() ->
+                        new ProveedorNoEncontradoException(
+                                proveedorId
+                        )
+                );
+    }
+
+    private List<DetalleCompra> crearDetalles(
+            List<CrearDetalleCompraRequest> requests,
+            UUID empresaId
+    ) {
+
+        List<DetalleCompra> detalles =
+                new ArrayList<>();
+
+        for (
+                CrearDetalleCompraRequest detalleRequest
+                : requests
+        ) {
+
+            Producto producto =
+                    productoRepository
+                            .findByIdAndEmpresaId(
+                                    detalleRequest.productoId(),
+                                    empresaId
+                            )
+                            .orElseThrow(() ->
+                                    new ProductoNoEncontradoException(
+                                            detalleRequest.productoId()
+                                    )
+                            );
+
+            DetalleCompra detalle =
+                    new DetalleCompra(
+                            producto,
+                            detalleRequest.cantidad(),
+                            detalleRequest.precioUnitario()
+                    );
+
+            detalles.add(detalle);
+        }
+
+        return detalles;
+    }
+
+    private void validarFechaCompra(
+            Instant fechaCompra
+    ) {
+        if (fechaCompra.isAfter(Instant.now())) {
+            throw new CompraEstadoInvalidoException(
+                    "La fecha de compra no puede ser futura"
+            );
+        }
+    }
+
     private Compra buscarEntidadPorId(
             UUID id,
             UUID empresaId
     ) {
         return compraRepository
-                .findByIdAndEmpresaId(id, empresaId)
+                .findByIdAndEmpresaId(
+                        id,
+                        empresaId
+                )
                 .orElseThrow(() ->
                         new CompraNoEncontradaException(id)
                 );

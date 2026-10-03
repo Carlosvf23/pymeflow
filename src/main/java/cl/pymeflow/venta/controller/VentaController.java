@@ -25,7 +25,9 @@ public class VentaController {
     public ResponseEntity<VentaResponse> crear(
             @Valid @RequestBody CrearVentaRequest request
     ) {
-        VentaResponse response = ventaService.crear(request);
+
+        VentaResponse response =
+                ventaService.crear(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -34,6 +36,7 @@ public class VentaController {
 
     @GetMapping
     public ResponseEntity<List<VentaResponse>> listar() {
+
         return ResponseEntity.ok(
                 ventaService.listar()
         );
@@ -43,15 +46,41 @@ public class VentaController {
     public ResponseEntity<VentaResponse> buscarPorId(
             @PathVariable UUID id
     ) {
+
         return ResponseEntity.ok(
                 ventaService.buscarPorId(id)
         );
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<VentaResponse> actualizar(
+            @PathVariable UUID id,
+            @Valid @RequestBody CrearVentaRequest request
+    ) {
+
+        return ResponseEntity.ok(
+                ventaService.actualizar(
+                        id,
+                        request
+                )
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(
+            @PathVariable UUID id
+    ) {
+
+        ventaService.eliminar(id);
+
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/confirmar")
     public ResponseEntity<VentaResponse> confirmar(
             @PathVariable UUID id
     ) {
+
         return ResponseEntity.ok(
                 ventaService.confirmar(id)
         );

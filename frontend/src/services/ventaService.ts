@@ -67,6 +67,25 @@ export async function crearVenta(
     return respuesta.data
 }
 
+export async function actualizarVenta(
+    id: string,
+    datos: CrearVentaRequest
+): Promise<Venta> {
+    const respuesta =
+        await api.put<Venta>(
+            `/ventas/${id}`,
+            datos
+        )
+
+    return respuesta.data
+}
+
+export async function eliminarVenta(
+    id: string
+): Promise<void> {
+    await api.delete(`/ventas/${id}`)
+}
+
 export async function confirmarVenta(
     id: string
 ): Promise<Venta> {

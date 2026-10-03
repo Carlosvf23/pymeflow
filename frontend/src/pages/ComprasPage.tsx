@@ -8,6 +8,8 @@ import {
 import {
     obtenerCompras,
     crearCompra,
+    actualizarCompra,
+    eliminarCompra,
     confirmarCompra,
     type Compra
 } from '../services/compraService'
@@ -24,12 +26,14 @@ import {
 
 import './ComprasPage.css'
 
+
 interface DetalleFormulario {
     idTemporal: number
     productoId: string
     cantidad: number | ''
     precioUnitario: number | ''
 }
+
 
 function fechaLocalParaInput(): string {
     const ahora = new Date()
@@ -44,7 +48,26 @@ function fechaLocalParaInput(): string {
         .slice(0, 16)
 }
 
+
+function convertirFechaAInput(
+    fechaIso: string
+): string {
+
+    const fecha = new Date(fechaIso)
+
+    const offset =
+        fecha.getTimezoneOffset() * 60000
+
+    return new Date(
+        fecha.getTime() - offset
+    )
+        .toISOString()
+        .slice(0, 16)
+}
+
+
 function ComprasPage() {
+
     const [compras, setCompras] =
         useState<Compra[]>([])
 
@@ -66,6 +89,9 @@ function ComprasPage() {
     const [confirmandoId, setConfirmandoId] =
         useState<string | null>(null)
 
+    const [eliminandoId, setEliminandoId] =
+        useState<string | null>(null)
+
     const [error, setError] =
         useState('')
 
@@ -73,6 +99,9 @@ function ComprasPage() {
         useState(false)
 
     const [compraSeleccionada, setCompraSeleccionada] =
+        useState<Compra | null>(null)
+
+    const [compraEditando, setCompraEditando] =
         useState<Compra | null>(null)
 
     const [proveedorId, setProveedorId] =
@@ -93,11 +122,14 @@ function ComprasPage() {
     const [contadorDetalle, setContadorDetalle] =
         useState(1)
 
+
     useEffect(() => {
         cargarDatos()
     }, [])
 
+
     async function cargarDatos() {
+
         try {
             setCargando(true)
             setError('')
@@ -125,25 +157,93 @@ function ComprasPage() {
         }
     }
 
+
     function abrirFormulario() {
+
+        setCompraEditando(null)
+
         setProveedorId('')
         setNumeroDocumento('')
         setFechaCompra(fechaLocalParaInput())
         setObservacion('')
         setDetalles([])
         setContadorDetalle(1)
+
         setError('')
         setMostrarFormulario(true)
     }
 
+
+    function editarCompra(
+        compra: Compra
+    ) {
+
+        if (compra.estado !== 'BORRADOR') {
+            return
+        }
+
+        const detallesFormulario:
+            DetalleFormulario[] =
+            compra.detalles.map(
+                (detalle, index) => ({
+                    idTemporal: index + 1,
+                    productoId:
+                    detalle.productoId,
+                    cantidad:
+                    detalle.cantidad,
+                    precioUnitario:
+                    detalle.precioUnitario
+                })
+            )
+
+        setCompraEditando(compra)
+
+        setProveedorId(
+            compra.proveedorId
+        )
+
+        setNumeroDocumento(
+            compra.numeroDocumento || ''
+        )
+
+        setFechaCompra(
+            convertirFechaAInput(
+                compra.fechaCompra
+            )
+        )
+
+        setObservacion(
+            compra.observacion || ''
+        )
+
+        setDetalles(
+            detallesFormulario
+        )
+
+        setContadorDetalle(
+            detallesFormulario.length + 1
+        )
+
+        setError('')
+        setCompraSeleccionada(null)
+        setMostrarFormulario(true)
+    }
+
+
     function cerrarFormulario() {
-        if (guardando) return
+
+        if (guardando) {
+            return
+        }
 
         setMostrarFormulario(false)
+        setCompraEditando(null)
         setError('')
     }
 
+
     function agregarProducto() {
+
         setDetalles([
             ...detalles,
             {
@@ -159,6 +259,7 @@ function ComprasPage() {
         )
     }
 
+
     function actualizarDetalle(
         idTemporal: number,
         campo:
@@ -167,8 +268,10 @@ function ComprasPage() {
             | 'precioUnitario',
         valor: string
     ) {
+
         setDetalles(
             detalles.map((detalle) => {
+
                 if (
                     detalle.idTemporal !==
                     idTemporal
@@ -194,9 +297,11 @@ function ComprasPage() {
         )
     }
 
+
     function eliminarDetalle(
         idTemporal: number
     ) {
+
         setDetalles(
             detalles.filter(
                 (detalle) =>
@@ -206,22 +311,61 @@ function ComprasPage() {
         )
     }
 
-    const totalFormulario = useMemo(
-        () =>
-            detalles.reduce(
-                (total, detalle) =>
-                    total +
-                    (Number(detalle.cantidad) || 0) *
-                    (Number(detalle.precioUnitario) || 0),
-                0
-            ),
-        [detalles]
-    )
+
+    const totalFormulario =
+        useMemo(
+            () =>
+                detalles.reduce(
+                    (total, detalle) =>
+                        total +
+                        (
+                            Number(
+                                detalle.cantidad
+                            ) || 0
+                        ) *
+                        (
+                            Number(
+                                detalle.precioUnitario
+                            ) || 0
+                        ),
+                    0
+                ),
+            [detalles]
+        )
+
 
     async function guardarCompra(
         e: FormEvent<HTMLFormElement>
     ) {
+
         e.preventDefault()
+
+        if (!proveedorId) {
+            setError(
+                'Debes seleccionar un proveedor.'
+            )
+            return
+        }
+
+        if (!fechaCompra) {
+            setError(
+                'Debes indicar la fecha de compra.'
+            )
+            return
+        }
+
+        const fechaSeleccionada =
+            new Date(fechaCompra)
+
+        if (
+            fechaSeleccionada.getTime() >
+            Date.now()
+        ) {
+            setError(
+                'La fecha de compra no puede ser futura.'
+            )
+            return
+        }
 
         if (detalles.length === 0) {
             setError(
@@ -230,7 +374,7 @@ function ComprasPage() {
             return
         }
 
-        if (
+        const detalleInvalido =
             detalles.some(
                 (detalle) =>
                     !detalle.productoId ||
@@ -239,7 +383,8 @@ function ComprasPage() {
                     detalle.cantidad <= 0 ||
                     detalle.precioUnitario < 0
             )
-        ) {
+
+        if (detalleInvalido) {
             setError(
                 'Revisa los productos, cantidades y precios.'
             )
@@ -251,58 +396,157 @@ function ComprasPage() {
             setError('')
 
             const fechaInstant =
-                new Date(fechaCompra)
+                fechaSeleccionada
                     .toISOString()
 
-            await crearCompra({
+            const datosCompra = {
                 proveedorId,
                 numeroDocumento,
                 fechaCompra: fechaInstant,
                 observacion,
-                detalles: detalles.map(
-                    ({
-                         productoId,
-                         cantidad,
-                         precioUnitario
-                     }) => ({
-                        productoId,
-                        cantidad: Number(cantidad),
-                        precioUnitario:
-                            Number(precioUnitario)
-                    })
+
+                detalles:
+                    detalles.map(
+                        ({
+                             productoId,
+                             cantidad,
+                             precioUnitario
+                         }) => ({
+                            productoId,
+                            cantidad:
+                                Number(cantidad),
+                            precioUnitario:
+                                Number(
+                                    precioUnitario
+                                )
+                        })
+                    )
+            }
+
+            if (compraEditando) {
+
+                await actualizarCompra(
+                    compraEditando.id,
+                    datosCompra
                 )
-            })
+
+            } else {
+
+                await crearCompra(
+                    datosCompra
+                )
+            }
 
             await cargarDatos()
 
             setMostrarFormulario(false)
+            setCompraEditando(null)
 
         } catch {
+
             setError(
-                'No fue posible crear la compra.'
+                compraEditando
+                    ? 'No fue posible actualizar la compra.'
+                    : 'No fue posible crear la compra.'
             )
+
         } finally {
             setGuardando(false)
         }
     }
 
+
+    async function eliminar(
+        compra: Compra
+    ) {
+
+        if (compra.estado !== 'BORRADOR') {
+            return
+        }
+
+        const aceptar =
+            window.confirm(
+                `¿Eliminar la compra ${
+                    compra.numeroDocumento ||
+                    'sin número de documento'
+                }?\n\nEsta acción eliminará definitivamente el borrador y no modificará el inventario.`
+            )
+
+        if (!aceptar) {
+            return
+        }
+
+        try {
+            setEliminandoId(
+                compra.id
+            )
+
+            setError('')
+
+            await eliminarCompra(
+                compra.id
+            )
+
+            if (
+                compraSeleccionada?.id ===
+                compra.id
+            ) {
+                setCompraSeleccionada(null)
+            }
+
+            if (
+                compraEditando?.id ===
+                compra.id
+            ) {
+                setCompraEditando(null)
+                setMostrarFormulario(false)
+            }
+
+            await cargarDatos()
+
+        } catch {
+
+            setError(
+                'No fue posible eliminar la compra.'
+            )
+
+        } finally {
+
+            setEliminandoId(null)
+        }
+    }
+
+
     async function confirmar(
         compra: Compra
     ) {
-        const aceptar = window.confirm(
-            `¿Confirmar la compra ${
-                compra.numeroDocumento ||
-                'sin número de documento'
-            }?\n\nAl confirmarla se ingresará el stock al inventario.`
-        )
 
-        if (!aceptar) return
+        if (compra.estado !== 'BORRADOR') {
+            return
+        }
+
+        const aceptar =
+            window.confirm(
+                `¿Confirmar la compra ${
+                    compra.numeroDocumento ||
+                    'sin número de documento'
+                }?\n\nAl confirmarla se ingresará el stock al inventario.`
+            )
+
+        if (!aceptar) {
+            return
+        }
 
         try {
-            setConfirmandoId(compra.id)
+            setConfirmandoId(
+                compra.id
+            )
+
             setError('')
 
-            await confirmarCompra(compra.id)
+            await confirmarCompra(
+                compra.id
+            )
 
             await cargarDatos()
 
@@ -314,32 +558,50 @@ function ComprasPage() {
             }
 
         } catch {
+
             setError(
                 'No fue posible confirmar la compra.'
             )
+
         } finally {
+
             setConfirmandoId(null)
         }
     }
 
-    const comprasFiltradas = useMemo(() => {
-        const texto =
-            busqueda.trim().toLowerCase()
 
-        if (!texto) return compras
+    const comprasFiltradas =
+        useMemo(() => {
 
-        return compras.filter((compra) =>
-            compra.proveedorRazonSocial
-                .toLowerCase()
-                .includes(texto) ||
-            (compra.numeroDocumento || '')
-                .toLowerCase()
-                .includes(texto) ||
-            compra.estado
-                .toLowerCase()
-                .includes(texto)
-        )
-    }, [compras, busqueda])
+            const texto =
+                busqueda
+                    .trim()
+                    .toLowerCase()
+
+            if (!texto) {
+                return compras
+            }
+
+            return compras.filter(
+                (compra) =>
+                    compra.proveedorRazonSocial
+                        .toLowerCase()
+                        .includes(texto) ||
+
+                    (
+                        compra.numeroDocumento ||
+                        ''
+                    )
+                        .toLowerCase()
+                        .includes(texto) ||
+
+                    compra.estado
+                        .toLowerCase()
+                        .includes(texto)
+            )
+
+        }, [compras, busqueda])
+
 
     const proveedoresActivos =
         proveedores.filter(
@@ -347,11 +609,13 @@ function ComprasPage() {
                 proveedor.estado === 'ACTIVO'
         )
 
+
     const productosActivos =
         productos.filter(
             (producto) =>
                 producto.estado === 'ACTIVO'
         )
+
 
     const formatoCLP =
         new Intl.NumberFormat(
@@ -363,6 +627,7 @@ function ComprasPage() {
             }
         )
 
+
     const formatoFecha =
         new Intl.DateTimeFormat(
             'es-CL',
@@ -372,20 +637,33 @@ function ComprasPage() {
             }
         )
 
+
     function claseEstado(
         estado: Compra['estado']
     ) {
+
         switch (estado) {
+
             case 'CONFIRMADA':
-                return 'compras-estado compras-confirmada'
+                return (
+                    'compras-estado ' +
+                    'compras-confirmada'
+                )
 
             case 'ANULADA':
-                return 'compras-estado compras-anulada'
+                return (
+                    'compras-estado ' +
+                    'compras-anulada'
+                )
 
             default:
-                return 'compras-estado compras-borrador'
+                return (
+                    'compras-estado ' +
+                    'compras-borrador'
+                )
         }
     }
+
 
     if (cargando) {
         return (
@@ -394,6 +672,7 @@ function ComprasPage() {
             </div>
         )
     }
+
 
     return (
         <main className="compras-page">
@@ -419,12 +698,15 @@ function ComprasPage() {
 
             </header>
 
+
             {error &&
                 !mostrarFormulario && (
+
                     <div className="compras-error">
                         {error}
                     </div>
                 )}
+
 
             <section className="compras-panel">
 
@@ -442,8 +724,7 @@ function ComprasPage() {
                     />
 
                     <span>
-                        {comprasFiltradas.length}
-                        {' '}
+                        {comprasFiltradas.length}{' '}
                         compra
                         {comprasFiltradas.length !== 1
                             ? 's'
@@ -451,6 +732,7 @@ function ComprasPage() {
                     </span>
 
                 </div>
+
 
                 <div className="compras-tabla-contenedor">
 
@@ -466,6 +748,7 @@ function ComprasPage() {
                             <th>Acciones</th>
                         </tr>
                         </thead>
+
 
                         <tbody>
 
@@ -510,18 +793,19 @@ function ComprasPage() {
                                     </td>
 
                                     <td>
-                                            <span
-                                                className={
-                                                    claseEstado(
-                                                        compra.estado
-                                                    )
-                                                }
-                                            >
-                                                {compra.estado}
-                                            </span>
+                                        <span
+                                            className={
+                                                claseEstado(
+                                                    compra.estado
+                                                )
+                                            }
+                                        >
+                                            {compra.estado}
+                                        </span>
                                     </td>
 
                                     <td>
+
                                         <div className="compras-acciones">
 
                                             <button
@@ -536,46 +820,90 @@ function ComprasPage() {
                                                 Ver
                                             </button>
 
+
                                             {compra.estado ===
                                                 'BORRADOR' && (
-                                                    <button
-                                                        type="button"
-                                                        className="compras-boton-confirmar"
-                                                        disabled={
-                                                            confirmandoId ===
-                                                            compra.id
-                                                        }
-                                                        onClick={() =>
-                                                            confirmar(
-                                                                compra
-                                                            )
-                                                        }
-                                                    >
-                                                        {confirmandoId ===
-                                                        compra.id
-                                                            ? 'Confirmando...'
-                                                            : 'Confirmar'}
-                                                    </button>
+                                                    <>
+
+                                                        <button
+                                                            type="button"
+                                                            className="compras-boton-editar"
+                                                            onClick={() =>
+                                                                editarCompra(
+                                                                    compra
+                                                                )
+                                                            }
+                                                        >
+                                                            Editar
+                                                        </button>
+
+
+                                                        <button
+                                                            type="button"
+                                                            className="compras-boton-eliminar"
+                                                            disabled={
+                                                                eliminandoId ===
+                                                                compra.id
+                                                            }
+                                                            onClick={() =>
+                                                                eliminar(
+                                                                    compra
+                                                                )
+                                                            }
+                                                        >
+                                                            {
+                                                                eliminandoId ===
+                                                                compra.id
+                                                                    ? 'Eliminando...'
+                                                                    : 'Eliminar'
+                                                            }
+                                                        </button>
+
+
+                                                        <button
+                                                            type="button"
+                                                            className="compras-boton-confirmar"
+                                                            disabled={
+                                                                confirmandoId ===
+                                                                compra.id
+                                                            }
+                                                            onClick={() =>
+                                                                confirmar(
+                                                                    compra
+                                                                )
+                                                            }
+                                                        >
+                                                            {
+                                                                confirmandoId ===
+                                                                compra.id
+                                                                    ? 'Confirmando...'
+                                                                    : 'Confirmar'
+                                                            }
+                                                        </button>
+
+                                                    </>
                                                 )}
 
                                         </div>
+
                                     </td>
 
                                 </tr>
                             )
                         )}
 
-                        {comprasFiltradas.length ===
-                            0 && (
-                                <tr>
-                                    <td
-                                        colSpan={6}
-                                        className="compras-vacio"
-                                    >
-                                        No hay compras para mostrar.
-                                    </td>
-                                </tr>
-                            )}
+
+                        {comprasFiltradas.length === 0 && (
+
+                            <tr>
+                                <td
+                                    colSpan={6}
+                                    className="compras-vacio"
+                                >
+                                    No hay compras para mostrar.
+                                </td>
+                            </tr>
+                        )}
 
                         </tbody>
 
@@ -584,6 +912,7 @@ function ComprasPage() {
                 </div>
 
             </section>
+
 
             {mostrarFormulario && (
 
@@ -594,13 +923,25 @@ function ComprasPage() {
                         <div className="compras-modal-header">
 
                             <div>
-                                <h2>Nueva compra</h2>
+
+                                <h2>
+                                    {
+                                        compraEditando
+                                            ? 'Editar compra'
+                                            : 'Nueva compra'
+                                    }
+                                </h2>
 
                                 <p>
-                                    La compra se guardará
-                                    inicialmente como BORRADOR
+                                    {
+                                        compraEditando
+                                            ? 'Modifica los datos del borrador'
+                                            : 'La compra se guardará inicialmente como BORRADOR'
+                                    }
                                 </p>
+
                             </div>
+
 
                             <button
                                 type="button"
@@ -612,6 +953,7 @@ function ComprasPage() {
                             </button>
 
                         </div>
+
 
                         <form
                             className="compras-form"
@@ -632,29 +974,34 @@ function ComprasPage() {
                                             )
                                         }
                                     >
+
                                         <option value="">
                                             Selecciona proveedor
                                         </option>
 
-                                        {proveedoresActivos.map(
-                                            (proveedor) => (
-                                                <option
-                                                    key={
-                                                        proveedor.id
-                                                    }
-                                                    value={
-                                                        proveedor.id
-                                                    }
-                                                >
-                                                    {
-                                                        proveedor.razonSocial
-                                                    }
-                                                </option>
+                                        {
+                                            proveedoresActivos.map(
+                                                (proveedor) => (
+
+                                                    <option
+                                                        key={
+                                                            proveedor.id
+                                                        }
+                                                        value={
+                                                            proveedor.id
+                                                        }
+                                                    >
+                                                        {
+                                                            proveedor.razonSocial
+                                                        }
+                                                    </option>
+                                                )
                                             )
-                                        )}
+                                        }
 
                                     </select>
                                 </label>
+
 
                                 <label>
                                     Número documento
@@ -673,12 +1020,14 @@ function ComprasPage() {
                                     />
                                 </label>
 
+
                                 <label>
                                     Fecha compra *
 
                                     <input
                                         required
                                         type="datetime-local"
+                                        max={fechaLocalParaInput()}
                                         value={fechaCompra}
                                         onChange={(e) =>
                                             setFechaCompra(
@@ -689,6 +1038,7 @@ function ComprasPage() {
                                 </label>
 
                             </div>
+
 
                             <label>
                                 Observación
@@ -705,6 +1055,7 @@ function ComprasPage() {
                                 />
                             </label>
 
+
                             <div className="compras-detalles-header">
 
                                 <div>
@@ -715,6 +1066,7 @@ function ComprasPage() {
                                         incluidos en la compra.
                                     </p>
                                 </div>
+
 
                                 <button
                                     type="button"
@@ -728,13 +1080,16 @@ function ComprasPage() {
 
                             </div>
 
+
                             <div className="compras-detalles">
 
                                 {detalles.length === 0 && (
+
                                     <div className="compras-vacio-detalle">
                                         Aún no has agregado productos.
                                     </div>
                                 )}
+
 
                                 {detalles.map(
                                     (detalle) => (
@@ -762,33 +1117,38 @@ function ComprasPage() {
                                                         )
                                                     }
                                                 >
+
                                                     <option value="">
                                                         Seleccionar
                                                     </option>
 
-                                                    {productosActivos.map(
-                                                        (producto) => (
-                                                            <option
-                                                                key={
-                                                                    producto.id
-                                                                }
-                                                                value={
-                                                                    producto.id
-                                                                }
-                                                            >
-                                                                {
-                                                                    producto.sku
-                                                                }
-                                                                {' - '}
-                                                                {
-                                                                    producto.nombre
-                                                                }
-                                                            </option>
+                                                    {
+                                                        productosActivos.map(
+                                                            (producto) => (
+
+                                                                <option
+                                                                    key={
+                                                                        producto.id
+                                                                    }
+                                                                    value={
+                                                                        producto.id
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        producto.sku
+                                                                    }
+                                                                    {' - '}
+                                                                    {
+                                                                        producto.nombre
+                                                                    }
+                                                                </option>
+                                                            )
                                                         )
-                                                    )}
+                                                    }
 
                                                 </select>
                                             </label>
+
 
                                             <label>
                                                 Cantidad
@@ -811,6 +1171,7 @@ function ComprasPage() {
                                                 />
                                             </label>
 
+
                                             <label>
                                                 Precio unitario
 
@@ -832,6 +1193,7 @@ function ComprasPage() {
                                                 />
                                             </label>
 
+
                                             <div className="compras-subtotal">
 
                                                 <span>
@@ -841,21 +1203,26 @@ function ComprasPage() {
                                                 <strong>
                                                     {
                                                         formatoCLP.format(
-                                                            (Number(
-                                                                detalle.cantidad
-                                                            ) || 0) *
-                                                            (Number(
-                                                                detalle.precioUnitario
-                                                            ) || 0)
+                                                            (
+                                                                Number(
+                                                                    detalle.cantidad
+                                                                ) || 0
+                                                            ) *
+                                                            (
+                                                                Number(
+                                                                    detalle.precioUnitario
+                                                                ) || 0
+                                                            )
                                                         )
                                                     }
                                                 </strong>
 
                                             </div>
 
+
                                             <button
                                                 type="button"
-                                                className="compras-eliminar"
+                                                className="compras-eliminar-detalle"
                                                 title="Eliminar producto"
                                                 onClick={() =>
                                                     eliminarDetalle(
@@ -871,6 +1238,7 @@ function ComprasPage() {
                                 )}
 
                             </div>
+
 
                             <div className="compras-total">
 
@@ -888,11 +1256,14 @@ function ComprasPage() {
 
                             </div>
 
+
                             {error && (
+
                                 <div className="compras-error">
                                     {error}
                                 </div>
                             )}
+
 
                             <div className="compras-modal-acciones">
 
@@ -906,14 +1277,19 @@ function ComprasPage() {
                                     Cancelar
                                 </button>
 
+
                                 <button
                                     type="submit"
                                     className="compras-boton-principal"
                                     disabled={guardando}
                                 >
-                                    {guardando
-                                        ? 'Guardando...'
-                                        : 'Crear compra'}
+                                    {
+                                        guardando
+                                            ? 'Guardando...'
+                                            : compraEditando
+                                                ? 'Guardar cambios'
+                                                : 'Crear compra'
+                                    }
                                 </button>
 
                             </div>
@@ -925,6 +1301,7 @@ function ComprasPage() {
                 </div>
             )}
 
+
             {compraSeleccionada && (
 
                 <div className="compras-modal-fondo">
@@ -934,6 +1311,7 @@ function ComprasPage() {
                         <div className="compras-modal-header">
 
                             <div>
+
                                 <h2>
                                     Compra{' '}
                                     {
@@ -947,7 +1325,9 @@ function ComprasPage() {
                                         compraSeleccionada.proveedorRazonSocial
                                     }
                                 </p>
+
                             </div>
+
 
                             <button
                                 type="button"
@@ -962,12 +1342,15 @@ function ComprasPage() {
 
                         </div>
 
+
                         <div className="compras-modal-contenido">
 
                             <div className="compras-detalle-resumen">
 
                                 <div>
-                                    <span>Estado</span>
+                                    <span>
+                                        Estado
+                                    </span>
 
                                     <strong>
                                         {
@@ -976,8 +1359,11 @@ function ComprasPage() {
                                     </strong>
                                 </div>
 
+
                                 <div>
-                                    <span>Fecha</span>
+                                    <span>
+                                        Fecha
+                                    </span>
 
                                     <strong>
                                         {
@@ -990,8 +1376,11 @@ function ComprasPage() {
                                     </strong>
                                 </div>
 
+
                                 <div>
-                                    <span>Total</span>
+                                    <span>
+                                        Total
+                                    </span>
 
                                     <strong>
                                         {
@@ -1004,107 +1393,176 @@ function ComprasPage() {
 
                             </div>
 
-                            <table className="compras-tabla">
 
-                                <thead>
-                                <tr>
-                                    <th>Producto</th>
-                                    <th>Cantidad</th>
-                                    <th>Precio</th>
-                                    <th>Subtotal</th>
-                                </tr>
-                                </thead>
+                            <div className="compras-tabla-detalle-contenedor">
 
-                                <tbody>
+                                <table className="compras-tabla compras-tabla-detalle">
 
-                                {compraSeleccionada.detalles.map(
-                                    (detalle) => (
+                                    <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio</th>
+                                        <th>Subtotal</th>
+                                    </tr>
+                                    </thead>
 
-                                        <tr key={detalle.id}>
 
-                                            <td>
-                                                {
-                                                    detalle.productoNombre
-                                                }
-                                            </td>
+                                    <tbody>
 
-                                            <td>
-                                                {
-                                                    detalle.cantidad
-                                                }
-                                            </td>
+                                    {
+                                        compraSeleccionada.detalles.map(
+                                            (detalle) => (
 
-                                            <td>
-                                                {
-                                                    formatoCLP.format(
-                                                        detalle.precioUnitario
-                                                    )
-                                                }
-                                            </td>
+                                                <tr key={detalle.id}>
 
-                                            <td>
-                                                <strong>
-                                                    {
-                                                        formatoCLP.format(
-                                                            detalle.subtotal
-                                                        )
-                                                    }
-                                                </strong>
-                                            </td>
+                                                    <td>
+                                                        {
+                                                            detalle.productoNombre
+                                                        }
+                                                    </td>
 
-                                        </tr>
-                                    )
-                                )}
+                                                    <td>
+                                                        {
+                                                            detalle.cantidad
+                                                        }
+                                                    </td>
 
-                                </tbody>
+                                                    <td>
+                                                        {
+                                                            formatoCLP.format(
+                                                                detalle.precioUnitario
+                                                            )
+                                                        }
+                                                    </td>
 
-                            </table>
+                                                    <td>
+                                                        <strong>
+                                                            {
+                                                                formatoCLP.format(
+                                                                    detalle.subtotal
+                                                                )
+                                                            }
+                                                        </strong>
+                                                    </td>
 
-                            {compraSeleccionada.observacion && (
-                                <div className="compras-observacion">
+                                                </tr>
+                                            )
+                                        )
+                                    }
 
-                                    <strong>
-                                        Observación
-                                    </strong>
+                                    </tbody>
 
-                                    <p>
-                                        {
-                                            compraSeleccionada.observacion
-                                        }
-                                    </p>
+                                </table>
 
-                                </div>
-                            )}
+                            </div>
 
-                            {compraSeleccionada.estado ===
-                                'BORRADOR' && (
 
-                                    <div className="compras-confirmacion">
+                            {
+                                compraSeleccionada.observacion && (
+
+                                    <div className="compras-observacion">
+
+                                        <strong>
+                                            Observación
+                                        </strong>
 
                                         <p>
-                                            Al confirmar esta compra,
-                                            sus productos ingresarán
-                                            automáticamente al inventario.
+                                            {
+                                                compraSeleccionada.observacion
+                                            }
                                         </p>
 
-                                        <button
-                                            type="button"
-                                            className="compras-boton-confirmar"
-                                            disabled={
-                                                confirmandoId ===
-                                                compraSeleccionada.id
-                                            }
-                                            onClick={() =>
-                                                confirmar(
-                                                    compraSeleccionada
-                                                )
-                                            }
-                                        >
-                                            Confirmar compra
-                                        </button>
+                                    </div>
+                                )
+                            }
+
+
+                            {
+                                compraSeleccionada.estado ===
+                                'BORRADOR' && (
+
+                                    <div className="compras-borrador-acciones-modal">
+
+                                        <div className="compras-confirmacion-texto">
+
+                                            <strong>
+                                                Compra en borrador
+                                            </strong>
+
+                                            <p>
+                                                Puedes editarla, eliminarla
+                                                o confirmarla. El inventario
+                                                solo se modificará cuando
+                                                confirmes la compra.
+                                            </p>
+
+                                        </div>
+
+
+                                        <div className="compras-borrador-botones">
+
+                                            <button
+                                                type="button"
+                                                className="compras-boton-editar"
+                                                onClick={() =>
+                                                    editarCompra(
+                                                        compraSeleccionada
+                                                    )
+                                                }
+                                            >
+                                                Editar
+                                            </button>
+
+
+                                            <button
+                                                type="button"
+                                                className="compras-boton-eliminar"
+                                                disabled={
+                                                    eliminandoId ===
+                                                    compraSeleccionada.id
+                                                }
+                                                onClick={() =>
+                                                    eliminar(
+                                                        compraSeleccionada
+                                                    )
+                                                }
+                                            >
+                                                {
+                                                    eliminandoId ===
+                                                    compraSeleccionada.id
+                                                        ? 'Eliminando...'
+                                                        : 'Eliminar'
+                                                }
+                                            </button>
+
+
+                                            <button
+                                                type="button"
+                                                className="compras-boton-confirmar"
+                                                disabled={
+                                                    confirmandoId ===
+                                                    compraSeleccionada.id
+                                                }
+                                                onClick={() =>
+                                                    confirmar(
+                                                        compraSeleccionada
+                                                    )
+                                                }
+                                            >
+                                                {
+                                                    confirmandoId ===
+                                                    compraSeleccionada.id
+                                                        ? 'Confirmando...'
+                                                        : 'Confirmar compra'
+                                                }
+                                            </button>
+
+                                        </div>
 
                                     </div>
-                                )}
+                                )
+                            }
 
                         </div>
 
@@ -1116,5 +1574,6 @@ function ComprasPage() {
         </main>
     )
 }
+
 
 export default ComprasPage

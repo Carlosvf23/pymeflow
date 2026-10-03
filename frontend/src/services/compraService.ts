@@ -52,8 +52,11 @@ export async function obtenerCompras(): Promise<Compra[]> {
 export async function obtenerCompra(
     id: string
 ): Promise<Compra> {
+
     const respuesta =
-        await api.get<Compra>(`/compras/${id}`)
+        await api.get<Compra>(
+            `/compras/${id}`
+        )
 
     return respuesta.data
 }
@@ -61,15 +64,43 @@ export async function obtenerCompra(
 export async function crearCompra(
     datos: CrearCompraRequest
 ): Promise<Compra> {
+
     const respuesta =
-        await api.post<Compra>('/compras', datos)
+        await api.post<Compra>(
+            '/compras',
+            datos
+        )
 
     return respuesta.data
+}
+
+export async function actualizarCompra(
+    id: string,
+    datos: CrearCompraRequest
+): Promise<Compra> {
+
+    const respuesta =
+        await api.put<Compra>(
+            `/compras/${id}`,
+            datos
+        )
+
+    return respuesta.data
+}
+
+export async function eliminarCompra(
+    id: string
+): Promise<void> {
+
+    await api.delete(
+        `/compras/${id}`
+    )
 }
 
 export async function confirmarCompra(
     id: string
 ): Promise<Compra> {
+
     const respuesta =
         await api.patch<Compra>(
             `/compras/${id}/confirmar`

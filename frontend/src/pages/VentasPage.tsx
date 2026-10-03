@@ -8,6 +8,8 @@ import {
 import {
     obtenerVentas,
     crearVenta,
+    actualizarVenta,
+    eliminarVenta,
     confirmarVenta,
     type Venta
 } from '../services/ventaService'
@@ -24,12 +26,14 @@ import {
 
 import './VentasPage.css'
 
+
 interface DetalleFormulario {
     idTemporal: number
     productoId: string
     cantidad: number | ''
     precioUnitario: number | ''
 }
+
 
 function fechaLocalParaInput(): string {
     const ahora = new Date()
@@ -44,7 +48,26 @@ function fechaLocalParaInput(): string {
         .slice(0, 16)
 }
 
+
+function convertirFechaAInput(
+    fechaIso: string
+): string {
+
+    const fecha = new Date(fechaIso)
+
+    const offset =
+        fecha.getTimezoneOffset() * 60000
+
+    return new Date(
+        fecha.getTime() - offset
+    )
+        .toISOString()
+        .slice(0, 16)
+}
+
+
 function VentasPage() {
+
     const [ventas, setVentas] =
         useState<Venta[]>([])
 
@@ -66,6 +89,9 @@ function VentasPage() {
     const [confirmandoId, setConfirmandoId] =
         useState<string | null>(null)
 
+    const [eliminandoId, setEliminandoId] =
+        useState<string | null>(null)
+
     const [error, setError] =
         useState('')
 
@@ -73,6 +99,9 @@ function VentasPage() {
         useState(false)
 
     const [ventaSeleccionada, setVentaSeleccionada] =
+        useState<Venta | null>(null)
+
+    const [ventaEditando, setVentaEditando] =
         useState<Venta | null>(null)
 
     const [clienteId, setClienteId] =
@@ -93,11 +122,14 @@ function VentasPage() {
     const [contadorDetalle, setContadorDetalle] =
         useState(1)
 
+
     useEffect(() => {
         cargarDatos()
     }, [])
 
+
     async function cargarDatos() {
+
         try {
             setCargando(true)
             setError('')
@@ -117,33 +149,104 @@ function VentasPage() {
             setProductos(productosRespuesta)
 
         } catch {
+
             setError(
                 'No fue posible cargar las ventas.'
             )
+
         } finally {
+
             setCargando(false)
         }
     }
 
+
     function abrirFormulario() {
+
+        setVentaEditando(null)
+
         setClienteId('')
         setNumeroDocumento('')
         setFechaVenta(fechaLocalParaInput())
         setObservacion('')
         setDetalles([])
         setContadorDetalle(1)
+
         setError('')
         setMostrarFormulario(true)
     }
 
+
+    function editarVenta(
+        venta: Venta
+    ) {
+
+        if (venta.estado !== 'BORRADOR') {
+            return
+        }
+
+        const detallesFormulario:
+            DetalleFormulario[] =
+            venta.detalles.map(
+                (detalle, index) => ({
+                    idTemporal: index + 1,
+                    productoId:
+                    detalle.productoId,
+                    cantidad:
+                    detalle.cantidad,
+                    precioUnitario:
+                    detalle.precioUnitario
+                })
+            )
+
+        setVentaEditando(venta)
+
+        setClienteId(
+            venta.clienteId
+        )
+
+        setNumeroDocumento(
+            venta.numeroDocumento || ''
+        )
+
+        setFechaVenta(
+            convertirFechaAInput(
+                venta.fechaVenta
+            )
+        )
+
+        setObservacion(
+            venta.observacion || ''
+        )
+
+        setDetalles(
+            detallesFormulario
+        )
+
+        setContadorDetalle(
+            detallesFormulario.length + 1
+        )
+
+        setError('')
+        setVentaSeleccionada(null)
+        setMostrarFormulario(true)
+    }
+
+
     function cerrarFormulario() {
-        if (guardando) return
+
+        if (guardando) {
+            return
+        }
 
         setMostrarFormulario(false)
+        setVentaEditando(null)
         setError('')
     }
 
+
     function agregarProducto() {
+
         setDetalles([
             ...detalles,
             {
@@ -159,6 +262,7 @@ function VentasPage() {
         )
     }
 
+
     function actualizarDetalle(
         idTemporal: number,
         campo:
@@ -167,8 +271,10 @@ function VentasPage() {
             | 'precioUnitario',
         valor: string
     ) {
+
         setDetalles(
             detalles.map((detalle) => {
+
                 if (
                     detalle.idTemporal !==
                     idTemporal
@@ -194,9 +300,11 @@ function VentasPage() {
         )
     }
 
+
     function eliminarDetalle(
         idTemporal: number
     ) {
+
         setDetalles(
             detalles.filter(
                 (detalle) =>
@@ -206,22 +314,61 @@ function VentasPage() {
         )
     }
 
-    const totalFormulario = useMemo(
-        () =>
-            detalles.reduce(
-                (total, detalle) =>
-                    total +
-                    (Number(detalle.cantidad) || 0) *
-                    (Number(detalle.precioUnitario) || 0),
-                0
-            ),
-        [detalles]
-    )
+
+    const totalFormulario =
+        useMemo(
+            () =>
+                detalles.reduce(
+                    (total, detalle) =>
+                        total +
+                        (
+                            Number(
+                                detalle.cantidad
+                            ) || 0
+                        ) *
+                        (
+                            Number(
+                                detalle.precioUnitario
+                            ) || 0
+                        ),
+                    0
+                ),
+            [detalles]
+        )
+
 
     async function guardarVenta(
         e: FormEvent<HTMLFormElement>
     ) {
+
         e.preventDefault()
+
+        if (!clienteId) {
+            setError(
+                'Debes seleccionar un cliente.'
+            )
+            return
+        }
+
+        if (!fechaVenta) {
+            setError(
+                'Debes indicar la fecha de venta.'
+            )
+            return
+        }
+
+        const fechaSeleccionada =
+            new Date(fechaVenta)
+
+        if (
+            fechaSeleccionada.getTime() >
+            Date.now()
+        ) {
+            setError(
+                'La fecha de venta no puede ser futura.'
+            )
+            return
+        }
 
         if (detalles.length === 0) {
             setError(
@@ -230,7 +377,7 @@ function VentasPage() {
             return
         }
 
-        if (
+        const detalleInvalido =
             detalles.some(
                 (detalle) =>
                     !detalle.productoId ||
@@ -239,7 +386,8 @@ function VentasPage() {
                     detalle.cantidad <= 0 ||
                     detalle.precioUnitario < 0
             )
-        ) {
+
+        if (detalleInvalido) {
             setError(
                 'Revisa los productos, cantidades y precios.'
             )
@@ -247,62 +395,165 @@ function VentasPage() {
         }
 
         try {
+
             setGuardando(true)
             setError('')
 
             const fechaInstant =
-                new Date(fechaVenta)
+                fechaSeleccionada
                     .toISOString()
 
-            await crearVenta({
+            const datosVenta = {
                 clienteId,
                 numeroDocumento,
                 fechaVenta: fechaInstant,
                 observacion,
-                detalles: detalles.map(
-                    ({
-                         productoId,
-                         cantidad,
-                         precioUnitario
-                     }) => ({
-                        productoId,
-                        cantidad: Number(cantidad),
-                        precioUnitario:
-                            Number(precioUnitario)
-                    })
+
+                detalles:
+                    detalles.map(
+                        ({
+                             productoId,
+                             cantidad,
+                             precioUnitario
+                         }) => ({
+                            productoId,
+                            cantidad:
+                                Number(cantidad),
+                            precioUnitario:
+                                Number(
+                                    precioUnitario
+                                )
+                        })
+                    )
+            }
+
+            if (ventaEditando) {
+
+                await actualizarVenta(
+                    ventaEditando.id,
+                    datosVenta
                 )
-            })
+
+            } else {
+
+                await crearVenta(
+                    datosVenta
+                )
+            }
 
             await cargarDatos()
 
             setMostrarFormulario(false)
+            setVentaEditando(null)
 
         } catch {
+
             setError(
-                'No fue posible crear la venta.'
+                ventaEditando
+                    ? 'No fue posible actualizar la venta.'
+                    : 'No fue posible crear la venta.'
             )
+
         } finally {
+
             setGuardando(false)
         }
     }
 
+
+    async function eliminar(
+        venta: Venta
+    ) {
+
+        if (venta.estado !== 'BORRADOR') {
+            return
+        }
+
+        const aceptar =
+            window.confirm(
+                `¿Eliminar la venta ${
+                    venta.numeroDocumento ||
+                    'sin número de documento'
+                }?\n\nEsta acción eliminará definitivamente el borrador y no modificará el inventario.`
+            )
+
+        if (!aceptar) {
+            return
+        }
+
+        try {
+
+            setEliminandoId(
+                venta.id
+            )
+
+            setError('')
+
+            await eliminarVenta(
+                venta.id
+            )
+
+            if (
+                ventaSeleccionada?.id ===
+                venta.id
+            ) {
+                setVentaSeleccionada(null)
+            }
+
+            if (
+                ventaEditando?.id ===
+                venta.id
+            ) {
+                setVentaEditando(null)
+                setMostrarFormulario(false)
+            }
+
+            await cargarDatos()
+
+        } catch {
+
+            setError(
+                'No fue posible eliminar la venta.'
+            )
+
+        } finally {
+
+            setEliminandoId(null)
+        }
+    }
+
+
     async function confirmar(
         venta: Venta
     ) {
-        const aceptar = window.confirm(
-            `¿Confirmar la venta ${
-                venta.numeroDocumento ||
-                'sin número de documento'
-            }?\n\nAl confirmarla se descontará el stock del inventario.`
-        )
 
-        if (!aceptar) return
+        if (venta.estado !== 'BORRADOR') {
+            return
+        }
+
+        const aceptar =
+            window.confirm(
+                `¿Confirmar la venta ${
+                    venta.numeroDocumento ||
+                    'sin número de documento'
+                }?\n\nAl confirmarla se descontará el stock del inventario.`
+            )
+
+        if (!aceptar) {
+            return
+        }
 
         try {
-            setConfirmandoId(venta.id)
+
+            setConfirmandoId(
+                venta.id
+            )
+
             setError('')
 
-            await confirmarVenta(venta.id)
+            await confirmarVenta(
+                venta.id
+            )
 
             await cargarDatos()
 
@@ -314,32 +565,50 @@ function VentasPage() {
             }
 
         } catch {
+
             setError(
                 'No fue posible confirmar la venta. Revisa que exista stock suficiente para todos los productos.'
             )
+
         } finally {
+
             setConfirmandoId(null)
         }
     }
 
-    const ventasFiltradas = useMemo(() => {
-        const texto =
-            busqueda.trim().toLowerCase()
 
-        if (!texto) return ventas
+    const ventasFiltradas =
+        useMemo(() => {
 
-        return ventas.filter((venta) =>
-            venta.clienteRazonSocial
-                .toLowerCase()
-                .includes(texto) ||
-            (venta.numeroDocumento || '')
-                .toLowerCase()
-                .includes(texto) ||
-            venta.estado
-                .toLowerCase()
-                .includes(texto)
-        )
-    }, [ventas, busqueda])
+            const texto =
+                busqueda
+                    .trim()
+                    .toLowerCase()
+
+            if (!texto) {
+                return ventas
+            }
+
+            return ventas.filter(
+                (venta) =>
+                    venta.clienteRazonSocial
+                        .toLowerCase()
+                        .includes(texto) ||
+
+                    (
+                        venta.numeroDocumento ||
+                        ''
+                    )
+                        .toLowerCase()
+                        .includes(texto) ||
+
+                    venta.estado
+                        .toLowerCase()
+                        .includes(texto)
+            )
+
+        }, [ventas, busqueda])
+
 
     const clientesActivos =
         clientes.filter(
@@ -347,11 +616,13 @@ function VentasPage() {
                 cliente.estado === 'ACTIVO'
         )
 
+
     const productosActivos =
         productos.filter(
             (producto) =>
                 producto.estado === 'ACTIVO'
         )
+
 
     const formatoCLP =
         new Intl.NumberFormat(
@@ -363,6 +634,7 @@ function VentasPage() {
             }
         )
 
+
     const formatoFecha =
         new Intl.DateTimeFormat(
             'es-CL',
@@ -372,20 +644,33 @@ function VentasPage() {
             }
         )
 
+
     function claseEstado(
         estado: Venta['estado']
     ) {
+
         switch (estado) {
+
             case 'CONFIRMADA':
-                return 'ventas-estado ventas-confirmada'
+                return (
+                    'ventas-estado ' +
+                    'ventas-confirmada'
+                )
 
             case 'ANULADA':
-                return 'ventas-estado ventas-anulada'
+                return (
+                    'ventas-estado ' +
+                    'ventas-anulada'
+                )
 
             default:
-                return 'ventas-estado ventas-borrador'
+                return (
+                    'ventas-estado ' +
+                    'ventas-borrador'
+                )
         }
     }
+
 
     if (cargando) {
         return (
@@ -394,6 +679,7 @@ function VentasPage() {
             </div>
         )
     }
+
 
     return (
         <main className="ventas-page">
@@ -419,12 +705,15 @@ function VentasPage() {
 
             </header>
 
+
             {error &&
                 !mostrarFormulario && (
+
                     <div className="ventas-error">
                         {error}
                     </div>
                 )}
+
 
             <section className="ventas-panel">
 
@@ -442,8 +731,7 @@ function VentasPage() {
                     />
 
                     <span>
-                        {ventasFiltradas.length}
-                        {' '}
+                        {ventasFiltradas.length}{' '}
                         venta
                         {ventasFiltradas.length !== 1
                             ? 's'
@@ -451,6 +739,7 @@ function VentasPage() {
                     </span>
 
                 </div>
+
 
                 <div className="ventas-tabla-contenedor">
 
@@ -510,18 +799,19 @@ function VentasPage() {
                                     </td>
 
                                     <td>
-                                            <span
-                                                className={
-                                                    claseEstado(
-                                                        venta.estado
-                                                    )
-                                                }
-                                            >
-                                                {venta.estado}
-                                            </span>
+                                        <span
+                                            className={
+                                                claseEstado(
+                                                    venta.estado
+                                                )
+                                            }
+                                        >
+                                            {venta.estado}
+                                        </span>
                                     </td>
 
                                     <td>
+
                                         <div className="ventas-acciones">
 
                                             <button
@@ -536,46 +826,90 @@ function VentasPage() {
                                                 Ver
                                             </button>
 
+
                                             {venta.estado ===
                                                 'BORRADOR' && (
-                                                    <button
-                                                        type="button"
-                                                        className="ventas-boton-confirmar"
-                                                        disabled={
-                                                            confirmandoId ===
-                                                            venta.id
-                                                        }
-                                                        onClick={() =>
-                                                            confirmar(
-                                                                venta
-                                                            )
-                                                        }
-                                                    >
-                                                        {confirmandoId ===
-                                                        venta.id
-                                                            ? 'Confirmando...'
-                                                            : 'Confirmar'}
-                                                    </button>
+                                                    <>
+
+                                                        <button
+                                                            type="button"
+                                                            className="ventas-boton-editar"
+                                                            onClick={() =>
+                                                                editarVenta(
+                                                                    venta
+                                                                )
+                                                            }
+                                                        >
+                                                            Editar
+                                                        </button>
+
+
+                                                        <button
+                                                            type="button"
+                                                            className="ventas-boton-eliminar"
+                                                            disabled={
+                                                                eliminandoId ===
+                                                                venta.id
+                                                            }
+                                                            onClick={() =>
+                                                                eliminar(
+                                                                    venta
+                                                                )
+                                                            }
+                                                        >
+                                                            {
+                                                                eliminandoId ===
+                                                                venta.id
+                                                                    ? 'Eliminando...'
+                                                                    : 'Eliminar'
+                                                            }
+                                                        </button>
+
+
+                                                        <button
+                                                            type="button"
+                                                            className="ventas-boton-confirmar"
+                                                            disabled={
+                                                                confirmandoId ===
+                                                                venta.id
+                                                            }
+                                                            onClick={() =>
+                                                                confirmar(
+                                                                    venta
+                                                                )
+                                                            }
+                                                        >
+                                                            {
+                                                                confirmandoId ===
+                                                                venta.id
+                                                                    ? 'Confirmando...'
+                                                                    : 'Confirmar'
+                                                            }
+                                                        </button>
+
+                                                    </>
                                                 )}
 
                                         </div>
+
                                     </td>
 
                                 </tr>
                             )
                         )}
 
-                        {ventasFiltradas.length ===
-                            0 && (
-                                <tr>
-                                    <td
-                                        colSpan={6}
-                                        className="ventas-vacio"
-                                    >
-                                        No hay ventas para mostrar.
-                                    </td>
-                                </tr>
-                            )}
+
+                        {ventasFiltradas.length === 0 && (
+
+                            <tr>
+                                <td
+                                    colSpan={6}
+                                    className="ventas-vacio"
+                                >
+                                    No hay ventas para mostrar.
+                                </td>
+                            </tr>
+                        )}
 
                         </tbody>
 
@@ -584,6 +918,7 @@ function VentasPage() {
                 </div>
 
             </section>
+
 
             {mostrarFormulario && (
 
@@ -594,13 +929,25 @@ function VentasPage() {
                         <div className="ventas-modal-header">
 
                             <div>
-                                <h2>Nueva venta</h2>
+
+                                <h2>
+                                    {
+                                        ventaEditando
+                                            ? 'Editar venta'
+                                            : 'Nueva venta'
+                                    }
+                                </h2>
 
                                 <p>
-                                    La venta se guardará
-                                    inicialmente como BORRADOR
+                                    {
+                                        ventaEditando
+                                            ? 'Modifica los datos del borrador'
+                                            : 'La venta se guardará inicialmente como BORRADOR'
+                                    }
                                 </p>
+
                             </div>
+
 
                             <button
                                 type="button"
@@ -612,6 +959,7 @@ function VentasPage() {
                             </button>
 
                         </div>
+
 
                         <form
                             className="ventas-form"
@@ -632,29 +980,34 @@ function VentasPage() {
                                             )
                                         }
                                     >
+
                                         <option value="">
                                             Selecciona cliente
                                         </option>
 
-                                        {clientesActivos.map(
-                                            (cliente) => (
-                                                <option
-                                                    key={
-                                                        cliente.id
-                                                    }
-                                                    value={
-                                                        cliente.id
-                                                    }
-                                                >
-                                                    {
-                                                        cliente.razonSocial
-                                                    }
-                                                </option>
+                                        {
+                                            clientesActivos.map(
+                                                (cliente) => (
+
+                                                    <option
+                                                        key={
+                                                            cliente.id
+                                                        }
+                                                        value={
+                                                            cliente.id
+                                                        }
+                                                    >
+                                                        {
+                                                            cliente.razonSocial
+                                                        }
+                                                    </option>
+                                                )
                                             )
-                                        )}
+                                        }
 
                                     </select>
                                 </label>
+
 
                                 <label>
                                     Número documento
@@ -673,12 +1026,14 @@ function VentasPage() {
                                     />
                                 </label>
 
+
                                 <label>
                                     Fecha venta *
 
                                     <input
                                         required
                                         type="datetime-local"
+                                        max={fechaLocalParaInput()}
                                         value={fechaVenta}
                                         onChange={(e) =>
                                             setFechaVenta(
@@ -689,6 +1044,7 @@ function VentasPage() {
                                 </label>
 
                             </div>
+
 
                             <label>
                                 Observación
@@ -705,6 +1061,7 @@ function VentasPage() {
                                 />
                             </label>
 
+
                             <div className="ventas-detalles-header">
 
                                 <div>
@@ -715,6 +1072,7 @@ function VentasPage() {
                                         incluidos en la venta.
                                     </p>
                                 </div>
+
 
                                 <button
                                     type="button"
@@ -728,13 +1086,16 @@ function VentasPage() {
 
                             </div>
 
+
                             <div className="ventas-detalles">
 
                                 {detalles.length === 0 && (
+
                                     <div className="ventas-vacio-detalle">
                                         Aún no has agregado productos.
                                     </div>
                                 )}
+
 
                                 {detalles.map(
                                     (detalle) => (
@@ -762,33 +1123,38 @@ function VentasPage() {
                                                         )
                                                     }
                                                 >
+
                                                     <option value="">
                                                         Seleccionar
                                                     </option>
 
-                                                    {productosActivos.map(
-                                                        (producto) => (
-                                                            <option
-                                                                key={
-                                                                    producto.id
-                                                                }
-                                                                value={
-                                                                    producto.id
-                                                                }
-                                                            >
-                                                                {
-                                                                    producto.sku
-                                                                }
-                                                                {' - '}
-                                                                {
-                                                                    producto.nombre
-                                                                }
-                                                            </option>
+                                                    {
+                                                        productosActivos.map(
+                                                            (producto) => (
+
+                                                                <option
+                                                                    key={
+                                                                        producto.id
+                                                                    }
+                                                                    value={
+                                                                        producto.id
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        producto.sku
+                                                                    }
+                                                                    {' - '}
+                                                                    {
+                                                                        producto.nombre
+                                                                    }
+                                                                </option>
+                                                            )
                                                         )
-                                                    )}
+                                                    }
 
                                                 </select>
                                             </label>
+
 
                                             <label>
                                                 Cantidad
@@ -811,6 +1177,7 @@ function VentasPage() {
                                                 />
                                             </label>
 
+
                                             <label>
                                                 Precio unitario
 
@@ -832,6 +1199,7 @@ function VentasPage() {
                                                 />
                                             </label>
 
+
                                             <div className="ventas-subtotal">
 
                                                 <span>
@@ -841,21 +1209,26 @@ function VentasPage() {
                                                 <strong>
                                                     {
                                                         formatoCLP.format(
-                                                            (Number(
-                                                                detalle.cantidad
-                                                            ) || 0) *
-                                                            (Number(
-                                                                detalle.precioUnitario
-                                                            ) || 0)
+                                                            (
+                                                                Number(
+                                                                    detalle.cantidad
+                                                                ) || 0
+                                                            ) *
+                                                            (
+                                                                Number(
+                                                                    detalle.precioUnitario
+                                                                ) || 0
+                                                            )
                                                         )
                                                     }
                                                 </strong>
 
                                             </div>
 
+
                                             <button
                                                 type="button"
-                                                className="ventas-eliminar"
+                                                className="ventas-eliminar-detalle"
                                                 title="Eliminar producto"
                                                 onClick={() =>
                                                     eliminarDetalle(
@@ -871,6 +1244,7 @@ function VentasPage() {
                                 )}
 
                             </div>
+
 
                             <div className="ventas-total">
 
@@ -888,11 +1262,14 @@ function VentasPage() {
 
                             </div>
 
+
                             {error && (
+
                                 <div className="ventas-error">
                                     {error}
                                 </div>
                             )}
+
 
                             <div className="ventas-modal-acciones">
 
@@ -906,14 +1283,19 @@ function VentasPage() {
                                     Cancelar
                                 </button>
 
+
                                 <button
                                     type="submit"
                                     className="ventas-boton-principal"
                                     disabled={guardando}
                                 >
-                                    {guardando
-                                        ? 'Guardando...'
-                                        : 'Crear venta'}
+                                    {
+                                        guardando
+                                            ? 'Guardando...'
+                                            : ventaEditando
+                                                ? 'Guardar cambios'
+                                                : 'Crear venta'
+                                    }
                                 </button>
 
                             </div>
@@ -925,6 +1307,7 @@ function VentasPage() {
                 </div>
             )}
 
+
             {ventaSeleccionada && (
 
                 <div className="ventas-modal-fondo">
@@ -934,6 +1317,7 @@ function VentasPage() {
                         <div className="ventas-modal-header">
 
                             <div>
+
                                 <h2>
                                     Venta{' '}
                                     {
@@ -947,7 +1331,9 @@ function VentasPage() {
                                         ventaSeleccionada.clienteRazonSocial
                                     }
                                 </p>
+
                             </div>
+
 
                             <button
                                 type="button"
@@ -962,12 +1348,15 @@ function VentasPage() {
 
                         </div>
 
+
                         <div className="ventas-modal-contenido">
 
                             <div className="ventas-detalle-resumen">
 
                                 <div>
-                                    <span>Estado</span>
+                                    <span>
+                                        Estado
+                                    </span>
 
                                     <strong>
                                         {
@@ -976,8 +1365,11 @@ function VentasPage() {
                                     </strong>
                                 </div>
 
+
                                 <div>
-                                    <span>Fecha</span>
+                                    <span>
+                                        Fecha
+                                    </span>
 
                                     <strong>
                                         {
@@ -990,8 +1382,11 @@ function VentasPage() {
                                     </strong>
                                 </div>
 
+
                                 <div>
-                                    <span>Total</span>
+                                    <span>
+                                        Total
+                                    </span>
 
                                     <strong>
                                         {
@@ -1004,107 +1399,176 @@ function VentasPage() {
 
                             </div>
 
-                            <table className="ventas-tabla">
 
-                                <thead>
-                                <tr>
-                                    <th>Producto</th>
-                                    <th>Cantidad</th>
-                                    <th>Precio</th>
-                                    <th>Subtotal</th>
-                                </tr>
-                                </thead>
+                            <div className="ventas-tabla-detalle-contenedor">
 
-                                <tbody>
+                                <table className="ventas-tabla ventas-tabla-detalle">
 
-                                {ventaSeleccionada.detalles.map(
-                                    (detalle) => (
+                                    <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio</th>
+                                        <th>Subtotal</th>
+                                    </tr>
+                                    </thead>
 
-                                        <tr key={detalle.id}>
 
-                                            <td>
-                                                {
-                                                    detalle.productoNombre
-                                                }
-                                            </td>
+                                    <tbody>
 
-                                            <td>
-                                                {
-                                                    detalle.cantidad
-                                                }
-                                            </td>
+                                    {
+                                        ventaSeleccionada.detalles.map(
+                                            (detalle) => (
 
-                                            <td>
-                                                {
-                                                    formatoCLP.format(
-                                                        detalle.precioUnitario
-                                                    )
-                                                }
-                                            </td>
+                                                <tr key={detalle.id}>
 
-                                            <td>
-                                                <strong>
-                                                    {
-                                                        formatoCLP.format(
-                                                            detalle.subtotal
-                                                        )
-                                                    }
-                                                </strong>
-                                            </td>
+                                                    <td>
+                                                        {
+                                                            detalle.productoNombre
+                                                        }
+                                                    </td>
 
-                                        </tr>
-                                    )
-                                )}
+                                                    <td>
+                                                        {
+                                                            detalle.cantidad
+                                                        }
+                                                    </td>
 
-                                </tbody>
+                                                    <td>
+                                                        {
+                                                            formatoCLP.format(
+                                                                detalle.precioUnitario
+                                                            )
+                                                        }
+                                                    </td>
 
-                            </table>
+                                                    <td>
+                                                        <strong>
+                                                            {
+                                                                formatoCLP.format(
+                                                                    detalle.subtotal
+                                                                )
+                                                            }
+                                                        </strong>
+                                                    </td>
 
-                            {ventaSeleccionada.observacion && (
-                                <div className="ventas-observacion">
+                                                </tr>
+                                            )
+                                        )
+                                    }
 
-                                    <strong>
-                                        Observación
-                                    </strong>
+                                    </tbody>
 
-                                    <p>
-                                        {
-                                            ventaSeleccionada.observacion
-                                        }
-                                    </p>
+                                </table>
 
-                                </div>
-                            )}
+                            </div>
 
-                            {ventaSeleccionada.estado ===
-                                'BORRADOR' && (
 
-                                    <div className="ventas-confirmacion">
+                            {
+                                ventaSeleccionada.observacion && (
+
+                                    <div className="ventas-observacion">
+
+                                        <strong>
+                                            Observación
+                                        </strong>
 
                                         <p>
-                                            Al confirmar esta venta,
-                                            sus productos se descontarán
-                                            automáticamente del inventario.
+                                            {
+                                                ventaSeleccionada.observacion
+                                            }
                                         </p>
 
-                                        <button
-                                            type="button"
-                                            className="ventas-boton-confirmar"
-                                            disabled={
-                                                confirmandoId ===
-                                                ventaSeleccionada.id
-                                            }
-                                            onClick={() =>
-                                                confirmar(
-                                                    ventaSeleccionada
-                                                )
-                                            }
-                                        >
-                                            Confirmar venta
-                                        </button>
+                                    </div>
+                                )
+                            }
+
+
+                            {
+                                ventaSeleccionada.estado ===
+                                'BORRADOR' && (
+
+                                    <div className="ventas-borrador-acciones-modal">
+
+                                        <div className="ventas-confirmacion-texto">
+
+                                            <strong>
+                                                Venta en borrador
+                                            </strong>
+
+                                            <p>
+                                                Puedes editarla, eliminarla
+                                                o confirmarla. El inventario
+                                                solo se modificará cuando
+                                                confirmes la venta.
+                                            </p>
+
+                                        </div>
+
+
+                                        <div className="ventas-borrador-botones">
+
+                                            <button
+                                                type="button"
+                                                className="ventas-boton-editar"
+                                                onClick={() =>
+                                                    editarVenta(
+                                                        ventaSeleccionada
+                                                    )
+                                                }
+                                            >
+                                                Editar
+                                            </button>
+
+
+                                            <button
+                                                type="button"
+                                                className="ventas-boton-eliminar"
+                                                disabled={
+                                                    eliminandoId ===
+                                                    ventaSeleccionada.id
+                                                }
+                                                onClick={() =>
+                                                    eliminar(
+                                                        ventaSeleccionada
+                                                    )
+                                                }
+                                            >
+                                                {
+                                                    eliminandoId ===
+                                                    ventaSeleccionada.id
+                                                        ? 'Eliminando...'
+                                                        : 'Eliminar'
+                                                }
+                                            </button>
+
+
+                                            <button
+                                                type="button"
+                                                className="ventas-boton-confirmar"
+                                                disabled={
+                                                    confirmandoId ===
+                                                    ventaSeleccionada.id
+                                                }
+                                                onClick={() =>
+                                                    confirmar(
+                                                        ventaSeleccionada
+                                                    )
+                                                }
+                                            >
+                                                {
+                                                    confirmandoId ===
+                                                    ventaSeleccionada.id
+                                                        ? 'Confirmando...'
+                                                        : 'Confirmar venta'
+                                                }
+                                            </button>
+
+                                        </div>
 
                                     </div>
-                                )}
+                                )
+                            }
 
                         </div>
 
@@ -1116,5 +1580,6 @@ function VentasPage() {
         </main>
     )
 }
+
 
 export default VentasPage
