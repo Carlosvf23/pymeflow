@@ -15,6 +15,11 @@ import {
     type ClienteRequest
 } from '../services/clienteService'
 
+import {
+    formatearRut,
+    validarRut
+} from '../utils/rut'
+
 import './ClientesPage.css'
 
 const formularioInicial: ClienteRequest = {
@@ -85,7 +90,9 @@ function ClientesPage() {
         setClienteEditando(cliente)
 
         setFormulario({
-            rut: cliente.rut ?? '',
+            rut: cliente.rut
+                ? formatearRut(cliente.rut)
+                : '',
             razonSocial: cliente.razonSocial,
             email: cliente.email ?? '',
             telefono: cliente.telefono ?? '',
@@ -115,7 +122,10 @@ function ClientesPage() {
     ) {
         setFormulario((actual) => ({
             ...actual,
-            [campo]: valor
+            [campo]:
+                campo === 'rut'
+                    ? formatearRut(valor)
+                    : valor
         }))
     }
 
@@ -123,6 +133,16 @@ function ClientesPage() {
         e: FormEvent<HTMLFormElement>
     ) {
         e.preventDefault()
+
+        if (
+            formulario.rut &&
+            !validarRut(formulario.rut)
+        ) {
+            setError(
+                'El RUT ingresado no es válido.'
+            )
+            return
+        }
 
         try {
             setError('')
@@ -221,6 +241,7 @@ function ClientesPage() {
 
                 <button
                     className="boton-principal"
+                    type="button"
                     onClick={abrirNuevoCliente}
                 >
                     + Nuevo cliente
@@ -294,7 +315,9 @@ function ClientesPage() {
                                     <tr key={cliente.id}>
 
                                         <td>
-                                            {cliente.rut || '-'}
+                                            {cliente.rut
+                                                ? formatearRut(cliente.rut)
+                                                : '-'}
                                         </td>
 
                                         <td>

@@ -15,6 +15,11 @@ import {
     type ProveedorRequest
 } from '../services/proveedorService'
 
+import {
+    formatearRut,
+    validarRut
+} from '../utils/rut'
+
 import './ProveedoresPage.css'
 
 const formularioInicial: ProveedorRequest = {
@@ -88,7 +93,9 @@ function ProveedoresPage() {
         setProveedorEditando(proveedor)
 
         setFormulario({
-            rut: proveedor.rut ?? '',
+            rut: proveedor.rut
+                ? formatearRut(proveedor.rut)
+                : '',
             razonSocial: proveedor.razonSocial,
             contacto: proveedor.contacto ?? '',
             email: proveedor.email ?? '',
@@ -120,7 +127,10 @@ function ProveedoresPage() {
     ) {
         setFormulario((actual) => ({
             ...actual,
-            [campo]: valor
+            [campo]:
+                campo === 'rut'
+                    ? formatearRut(valor)
+                    : valor
         }))
     }
 
@@ -128,6 +138,16 @@ function ProveedoresPage() {
         e: FormEvent<HTMLFormElement>
     ) {
         e.preventDefault()
+
+        if (
+            formulario.rut &&
+            !validarRut(formulario.rut)
+        ) {
+            setError(
+                'El RUT ingresado no es válido.'
+            )
+            return
+        }
 
         try {
             setError('')
@@ -223,6 +243,7 @@ function ProveedoresPage() {
             <header className="proveedores-header">
                 <div>
                     <h1>Proveedores</h1>
+
                     <p>
                         Administra los proveedores de tu empresa
                     </p>
@@ -272,6 +293,7 @@ function ProveedoresPage() {
 
                     <div className="proveedores-vacio">
                         <h3>No hay proveedores</h3>
+
                         <p>
                             Crea tu primer proveedor para comenzar.
                         </p>
@@ -302,11 +324,14 @@ function ProveedoresPage() {
                                     <tr key={proveedor.id}>
 
                                         <td>
-                                            {proveedor.rut || '-'}
+                                            {proveedor.rut
+                                                ? formatearRut(proveedor.rut)
+                                                : '-'}
                                         </td>
 
                                         <td>
                                             <div className="proveedor-empresa">
+
                                                 <strong>
                                                     {proveedor.razonSocial}
                                                 </strong>
@@ -316,11 +341,13 @@ function ProveedoresPage() {
                                                         {proveedor.sitioWeb}
                                                     </small>
                                                 )}
+
                                             </div>
                                         </td>
 
                                         <td>
                                             <div className="proveedor-contacto">
+
                                                     <span>
                                                         {proveedor.contacto || '-'}
                                                     </span>
@@ -332,6 +359,7 @@ function ProveedoresPage() {
                                                 <small>
                                                     {proveedor.telefono || ''}
                                                 </small>
+
                                             </div>
                                         </td>
 
@@ -362,7 +390,9 @@ function ProveedoresPage() {
                                                     className="proveedor-boton-editar"
                                                     type="button"
                                                     onClick={() =>
-                                                        abrirEditarProveedor(proveedor)
+                                                        abrirEditarProveedor(
+                                                            proveedor
+                                                        )
                                                     }
                                                 >
                                                     Editar
@@ -376,7 +406,9 @@ function ProveedoresPage() {
                                                     }
                                                     type="button"
                                                     onClick={() =>
-                                                        cambiarEstado(proveedor)
+                                                        cambiarEstado(
+                                                            proveedor
+                                                        )
                                                     }
                                                 >
                                                     {proveedor.estado === 'ACTIVO'

@@ -6,13 +6,14 @@ import {
 
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
-import ModuloPage from './pages/ModuloPage'
 import AppLayout from './components/AppLayout'
 import ClientesPage from './pages/ClientesPage'
 import ProveedoresPage from './pages/ProveedoresPage'
 import CategoriasPage from './pages/CategoriasPage'
 import ProductosPage from './pages/ProductosPage'
-
+import InventarioPage from './pages/InventarioPage'
+import ComprasPage from './pages/ComprasPage'
+import VentasPage from './pages/VentasPage'
 function RutaProtegida() {
     const token = localStorage.getItem('token')
 
@@ -58,12 +59,15 @@ function App() {
 
                 <Route
                     path="/inventario"
-                    element={
-                        <ModuloPage
-                            titulo="Inventario"
-                            descripcion="Control de stock y movimientos"
-                        />
-                    }
+                    element={<InventarioPage />}
+                />
+                <Route
+                    path="/compras"
+                    element={<ComprasPage />}
+                />
+                <Route
+                    path="/ventas"
+                    element={<VentasPage />}
                 />
 
                 {/* después siguen Compras, Ventas, etc. */}
