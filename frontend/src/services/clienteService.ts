@@ -59,3 +59,18 @@ export async function actualizarCliente(
 
     return respuesta.data
 }
+export async function activarCliente(id: string): Promise<Cliente> {
+    const respuesta = await api.patch<Cliente>(
+        `/clientes/${id}/activar`
+    )
+
+    return respuesta.data
+}
+
+export async function desactivarCliente(id: string): Promise<Cliente> {
+    const respuesta = await api.patch<Cliente>(
+        `/clientes/${id}/desactivar`
+    )
+
+    return respuesta.data
+}

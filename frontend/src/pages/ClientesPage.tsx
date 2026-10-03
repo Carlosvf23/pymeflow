@@ -6,8 +6,10 @@ import {
 } from 'react'
 
 import {
+    activarCliente,
     actualizarCliente,
     crearCliente,
+    desactivarCliente,
     obtenerClientes,
     type Cliente,
     type ClienteRequest
@@ -150,6 +152,29 @@ function ClientesPage() {
         }
     }
 
+    async function cambiarEstado(cliente: Cliente) {
+        try {
+            setError('')
+
+            if (cliente.estado === 'ACTIVO') {
+                await desactivarCliente(cliente.id)
+            } else {
+                await activarCliente(cliente.id)
+            }
+
+            await cargarClientes()
+
+        } catch {
+            setError(
+                `No fue posible ${
+                    cliente.estado === 'ACTIVO'
+                        ? 'desactivar'
+                        : 'activar'
+                } el cliente.`
+            )
+        }
+    }
+
     const clientesFiltrados = useMemo(() => {
         const texto =
             busqueda.trim().toLowerCase()
@@ -257,7 +282,7 @@ function ClientesPage() {
                                 <th>Contacto</th>
                                 <th>Ubicación</th>
                                 <th>Estado</th>
-                                <th></th>
+                                <th>Acciones</th>
                             </tr>
                             </thead>
 
@@ -280,9 +305,9 @@ function ClientesPage() {
 
                                         <td>
                                             <div className="cliente-contacto">
-                                                <span>
-                                                    {cliente.email || '-'}
-                                                </span>
+                                                    <span>
+                                                        {cliente.email || '-'}
+                                                    </span>
 
                                                 <small>
                                                     {cliente.telefono || ''}
@@ -299,26 +324,47 @@ function ClientesPage() {
                                         </td>
 
                                         <td>
-                                            <span
-                                                className={
-                                                    cliente.estado === 'ACTIVO'
-                                                        ? 'estado estado-activo'
-                                                        : 'estado estado-inactivo'
-                                                }
-                                            >
-                                                {cliente.estado}
-                                            </span>
+                                                <span
+                                                    className={
+                                                        cliente.estado === 'ACTIVO'
+                                                            ? 'estado estado-activo'
+                                                            : 'estado estado-inactivo'
+                                                    }
+                                                >
+                                                    {cliente.estado}
+                                                </span>
                                         </td>
 
                                         <td>
-                                            <button
-                                                className="boton-editar"
-                                                onClick={() =>
-                                                    abrirEditarCliente(cliente)
-                                                }
-                                            >
-                                                Editar
-                                            </button>
+                                            <div className="cliente-acciones">
+
+                                                <button
+                                                    className="boton-editar"
+                                                    type="button"
+                                                    onClick={() =>
+                                                        abrirEditarCliente(cliente)
+                                                    }
+                                                >
+                                                    Editar
+                                                </button>
+
+                                                <button
+                                                    className={
+                                                        cliente.estado === 'ACTIVO'
+                                                            ? 'boton-estado boton-desactivar'
+                                                            : 'boton-estado boton-activar'
+                                                    }
+                                                    type="button"
+                                                    onClick={() =>
+                                                        cambiarEstado(cliente)
+                                                    }
+                                                >
+                                                    {cliente.estado === 'ACTIVO'
+                                                        ? 'Desactivar'
+                                                        : 'Activar'}
+                                                </button>
+
+                                            </div>
                                         </td>
 
                                     </tr>
