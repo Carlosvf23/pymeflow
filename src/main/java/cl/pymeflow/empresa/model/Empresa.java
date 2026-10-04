@@ -1,5 +1,6 @@
 package cl.pymeflow.empresa.model;
 
+import cl.pymeflow.plan.model.Plan;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -40,6 +41,10 @@ public class Empresa {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EstadoEmpresa estado;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "plan_id", nullable = false)
+    private Plan plan;
 
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private Instant fechaCreacion;
@@ -123,6 +128,10 @@ public class Empresa {
         return estado;
     }
 
+    public Plan getPlan() {
+        return plan;
+    }
+
     public Instant getFechaCreacion() {
         return fechaCreacion;
     }
@@ -147,6 +156,10 @@ public class Empresa {
         this.direccion = direccion;
         this.comuna = comuna;
         this.region = region;
+    }
+
+    public void asignarPlan(Plan plan) {
+        this.plan = plan;
     }
 
     public void suspender() {

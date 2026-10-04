@@ -1,28 +1,29 @@
 package cl.pymeflow.shared.exception;
 
+import cl.pymeflow.auth.exception.CredencialesInvalidasException;
+import cl.pymeflow.categoria.exception.CategoriaNoEncontradaException;
+import cl.pymeflow.categoria.exception.NombreCategoriaDuplicadoException;
+import cl.pymeflow.cliente.exception.ClienteNoEncontradoException;
+import cl.pymeflow.cliente.exception.RutClienteDuplicadoException;
+import cl.pymeflow.compra.exception.CompraEstadoInvalidoException;
+import cl.pymeflow.compra.exception.CompraNoEncontradaException;
 import cl.pymeflow.empresa.exception.EmpresaNoEncontradaException;
 import cl.pymeflow.empresa.exception.RutEmpresaDuplicadoException;
+import cl.pymeflow.inventario.exception.StockInsuficienteException;
+import cl.pymeflow.plan.exception.CapacidadNoDisponibleException;
+import cl.pymeflow.producto.exception.ProductoNoEncontradoException;
+import cl.pymeflow.producto.exception.SkuProductoDuplicadoException;
+import cl.pymeflow.proveedor.exception.ProveedorNoEncontradoException;
+import cl.pymeflow.proveedor.exception.RutProveedorDuplicadoException;
 import cl.pymeflow.usuario.exception.EmailUsuarioDuplicadoException;
 import cl.pymeflow.usuario.exception.UsuarioNoEncontradoException;
+import cl.pymeflow.venta.exception.VentaEstadoInvalidoException;
+import cl.pymeflow.venta.exception.VentaNoEncontradaException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import cl.pymeflow.auth.exception.CredencialesInvalidasException;
-import cl.pymeflow.cliente.exception.ClienteNoEncontradoException;
-import cl.pymeflow.cliente.exception.RutClienteDuplicadoException;
-import cl.pymeflow.proveedor.exception.ProveedorNoEncontradoException;
-import cl.pymeflow.proveedor.exception.RutProveedorDuplicadoException;
-import cl.pymeflow.categoria.exception.CategoriaNoEncontradaException;
-import cl.pymeflow.categoria.exception.NombreCategoriaDuplicadoException;
-import cl.pymeflow.producto.exception.ProductoNoEncontradoException;
-import cl.pymeflow.producto.exception.SkuProductoDuplicadoException;
-import cl.pymeflow.inventario.exception.StockInsuficienteException;
-import cl.pymeflow.compra.exception.CompraNoEncontradaException;
-import cl.pymeflow.compra.exception.CompraEstadoInvalidoException;
-import cl.pymeflow.venta.exception.VentaEstadoInvalidoException;
-import cl.pymeflow.venta.exception.VentaNoEncontradaException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -74,6 +75,7 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+
     @ExceptionHandler(CredencialesInvalidasException.class)
     public ResponseEntity<ApiError> manejarCredencialesInvalidas(
             CredencialesInvalidasException ex
@@ -83,8 +85,8 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 null
         );
-
     }
+
     @ExceptionHandler(ClienteNoEncontradoException.class)
     public ResponseEntity<ApiError> manejarClienteNoEncontrado(
             ClienteNoEncontradoException ex
@@ -107,9 +109,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-
-
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> manejarValidaciones(
             MethodArgumentNotValidException ex
@@ -131,6 +130,7 @@ public class GlobalExceptionHandler {
                 errores
         );
     }
+
     @ExceptionHandler(ProveedorNoEncontradoException.class)
     public ResponseEntity<ApiError> manejarProveedorNoEncontrado(
             ProveedorNoEncontradoException ex
@@ -152,6 +152,7 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+
     @ExceptionHandler(CategoriaNoEncontradaException.class)
     public ResponseEntity<ApiError> manejarCategoriaNoEncontrada(
             CategoriaNoEncontradaException ex
@@ -173,6 +174,7 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+
     @ExceptionHandler(ProductoNoEncontradoException.class)
     public ResponseEntity<ApiError> manejarProductoNoEncontrado(
             ProductoNoEncontradoException ex
@@ -185,7 +187,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(SkuProductoDuplicadoException.class)
-    public ResponseEntity<ApiError> manejarSkuProductoDuplicado(
+    public ResponseEntity<ApiError> manejarSkuProductoDupliclicado(
             SkuProductoDuplicadoException ex
     ) {
         return construirRespuesta(
@@ -194,6 +196,7 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+
     @ExceptionHandler(StockInsuficienteException.class)
     public ResponseEntity<ApiError> manejarStockInsuficiente(
             StockInsuficienteException ex
@@ -204,6 +207,7 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+
     @ExceptionHandler(CompraNoEncontradaException.class)
     public ResponseEntity<ApiError> manejarCompraNoEncontrada(
             CompraNoEncontradaException ex
@@ -214,6 +218,7 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+
     @ExceptionHandler(CompraEstadoInvalidoException.class)
     public ResponseEntity<ApiError> manejarCompraEstadoInvalido(
             CompraEstadoInvalidoException ex
@@ -224,6 +229,7 @@ public class GlobalExceptionHandler {
                 null
         );
     }
+
     @ExceptionHandler(VentaNoEncontradaException.class)
     public ResponseEntity<ApiError> manejarVentaNoEncontrada(
             VentaNoEncontradaException ex
@@ -246,7 +252,16 @@ public class GlobalExceptionHandler {
         );
     }
 
-
+    @ExceptionHandler(CapacidadNoDisponibleException.class)
+    public ResponseEntity<ApiError> manejarCapacidadNoDisponible(
+            CapacidadNoDisponibleException ex
+    ) {
+        return construirRespuesta(
+                HttpStatus.FORBIDDEN,
+                ex.getMessage(),
+                null
+        );
+    }
 
     private ResponseEntity<ApiError> construirRespuesta(
             HttpStatus status,
